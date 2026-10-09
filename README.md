@@ -14,7 +14,7 @@ Foundation for a modular monolith supporting public news, organization informati
 - `supabase`: local Supabase configuration and logical Storage bucket provisioning.
 - `tests`: domain unit tests and PostgreSQL integration tests.
 
-All business behavior belongs in domain/API modules, not React components, so the frontends can be redesigned independently. This is one deployable codebase, not a microservice system. Admin authentication/session enforcement and granular authorization are not implemented in this foundation yet; do not expose admin operations until they are.
+All business behavior belongs in domain/API modules, not React components, so the frontends can be redesigned independently. This is one deployable codebase, not a microservice system. The admin portal has server-backed sessions and role checks; customers have no accounts or login.
 
 ## Requirements
 
@@ -77,7 +77,16 @@ Bookings are date-only and inclusive (`end_date - start_date + 1`). Dance bookin
 - `GET /health`: API and PostgreSQL connectivity.
 - `POST /api/bookings`: creates a date-based DANCE or BRT booking with server-calculated price snapshots and availability checks.
 
-Set `API_BASE_URL` in frontend environments to connect apps to the API. Never put `SUPABASE_SERVICE_ROLE_KEY` in a `NEXT_PUBLIC_*` variable. Supabase Storage's `news`, `services`, `items`, and `organization` buckets are intended for public content images; storage metadata remains in PostgreSQL.
+### Admin authentication and access
+
+- `POST /api/admin/auth/login`, `POST /api/admin/auth/logout`, and `GET /api/admin/auth/me` use an opaque, database-backed session cookie.
+- Session tokens are random, stored only as SHA-256 hashes, expire after eight hours, and are invalidated on logout. Cookies are HttpOnly, SameSite=Strict, scoped to `/api/admin`, and Secure in production.
+- Passwords use bcrypt. Login input is Zod-validated, failures are generic and audited, and an in-process per-IP limiter allows five failures per 15 minutes.
+- `GET /api/admin/news` requires `NEWS_ADMIN`; `/api/admin/rentals/dance` requires `MANAGER`; `/api/admin/rentals/brt` requires `BRT_ADMIN`. These endpoints demonstrate the protected role boundaries for the next feature phase.
+- Audit records include actor and role for successful login/logout. Failed logins are recorded without an actor. Route handlers can use `recordAdminAudit` for CRUD, payment confirmation, and settings changes.
+- Admin login is at `http://localhost:3001/login`. After sign-in, the server-provided role selects `/news`, `/manager`, or `/brt`; no role is accepted from the browser. The Next.js admin app proxies `/api/*` to `API_BASE_URL`.
+
+Never put `SUPABASE_SERVICE_ROLE_KEY` in a `NEXT_PUBLIC_*` variable. Supabase Storage's `news`, `services`, `items`, and `organization` buckets are intended for public content images; storage metadata remains in PostgreSQL.
 
 ## Environment variables
 

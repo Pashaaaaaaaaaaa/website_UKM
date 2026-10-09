@@ -11,6 +11,14 @@ describe('PostgreSQL integration', { skip: !configured }, () => {
     await checkDatabase();
     const result = await getPool().query("SELECT name FROM schema_migrations WHERE name='001_initial_schema.sql'");
     assert.equal(result.rowCount, 1);
+    const authMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='002_admin_auth.sql'");
+    assert.equal(authMigration.rowCount, 1);
+    const authTables = await getPool().query(`SELECT table_name FROM information_schema.tables
+      WHERE table_schema=current_schema() AND table_name='admin_sessions'`);
+    assert.equal(authTables.rowCount, 1);
+    const roleAudit = await getPool().query(`SELECT column_name FROM information_schema.columns
+      WHERE table_schema=current_schema() AND table_name='audit_logs' AND column_name='actor_role'`);
+    assert.equal(roleAudit.rowCount, 1);
   });
 
   it('has the documented development seed records after db:seed', async () => {
