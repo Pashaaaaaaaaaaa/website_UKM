@@ -1,0 +1,63 @@
+import type pg from 'pg';
+import { z } from 'zod';
+import type { AdminRole } from './auth.ts';
+
+export const SlugSchema = z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+export const ArticleInput = z.object({ title:z.string().trim().min(1).max(240),slug:SlugSchema,excerpt:z.string().max(500).default(''),content:z.string().min(1).max(200_000),category_id:z.string().uuid().nullable().default(null),tag_ids:z.array(z.string().uuid()).max(30).default([]),division_ids:z.array(z.string().uuid()).max(30).default([]),image_media_ids:z.array(z.string().uuid()).max(50).default([]),author_id:z.string().uuid().optional(),status:z.enum(['DRAFT','PUBLISHED','UNPUBLISHED']).default('DRAFT'),published_at:z.string().datetime().nullable().default(null),thumbnail_media_id:z.string().uuid().nullable().default(null) }).strict();
+export const TaxonomyInput = z.object({name:z.string().trim().min(1).max(100),slug:SlugSchema,description:z.string().max(2000).nullable().optional()}).strict();
+export const OrgInput = z.object({name:z.string().trim().min(1).max(180),description:z.string().max(10_000),history:z.string().max(50_000),address:z.string().max(500).nullable().optional(),phone:z.string().max(60).nullable().optional(),email:z.string().email().max(254).nullable().optional(),logo_media_id:z.string().uuid().nullable().optional()}).strict();
+export const MemberInput = z.object({name:z.string().trim().min(1).max(160),position:z.string().trim().min(1).max(160),bio:z.string().max(5000).nullable().optional(),division_id:z.string().uuid().nullable().optional(),photo_media_id:z.string().uuid().nullable().optional(),sort_order:z.number().int().min(-10000).max(10000).default(0),is_active:z.boolean().default(true)}).strict();
+export const DanceServiceInput = z.object({name:z.string().trim().min(1).max(160),slug:SlugSchema,description:z.string().max(10000).default(''),price_per_performance:z.number().finite().min(0).max(100_000_000),image_media_id:z.string().uuid().nullable().optional(),is_active:z.boolean().default(true)}).strict();
+export const CategoryInput = z.object({name:z.string().trim().min(1).max(100),slug:SlugSchema}).strict();
+export const InventoryItemInput = z.object({category_id:z.string().uuid(),name:z.string().trim().min(1).max(160),slug:SlugSchema,description:z.string().max(10000).default(''),price_per_unit_per_day:z.number().finite().min(0).max(100_000_000),total_quantity:z.number().int().min(0).max(1_000_000),image_media_id:z.string().uuid().nullable().optional(),is_active:z.boolean().default(true)}).strict();
+export const CommentInput = z.object({name:z.string().trim().min(1).max(120),email:z.string().trim().email().max(254).optional().or(z.literal('')),content:z.string().trim().min(2).max(4000),website:z.string().max(500).optional().default('')}).strict();
+const taxonomyTables={categories:'article_categories',tags:'tags',divisions:'divisions'} as const;
+export type TaxonomyKind=keyof typeof taxonomyTables;
+export class ManagementError extends Error {readonly status:number;readonly code:string;constructor(status:number,code:string,message:string){super(message);this.status=status;this.code=code;this.name='ManagementError';}}
+export const sqlStatus=(e:unknown)=>typeof e==='object'&&e!==null&&'code'in e?String(e.code):'';
+
+export async function listArticles(pool:pg.Pool,filter:{search?:string|undefined;status?:string|undefined;category?:string|undefined;tag?:string|undefined;division?:string|undefined;limit:number;offset:number}){
+ const result=await pool.query(`SELECT a.id,a.title,a.slug,a.excerpt,a.content,a.body,a.category_id,c.name AS category,a.author_id,u.name AS author,a.status,a.published_at,a.thumbnail_media_id,a.created_at,a.updated_at,
+   COALESCE((SELECT json_agg(json_build_object('id',t.id,'name',t.name,'slug',t.slug)) FROM article_tags at JOIN tags t ON t.id=at.tag_id WHERE at.article_id=a.id),'[]') tags,
+   COALESCE((SELECT json_agg(json_build_object('id',d.id,'name',d.name,'slug',d.slug)) FROM article_divisions ad JOIN divisions d ON d.id=ad.division_id WHERE ad.article_id=a.id),'[]') divisions,
+   COALESCE((SELECT json_agg(am.media_id ORDER BY am.sort_order) FROM article_media am WHERE am.article_id=a.id),'[]') image_media_ids
+   FROM articles a LEFT JOIN article_categories c ON c.id=a.category_id JOIN admin_users u ON u.id=a.author_id
+   WHERE ($1::text IS NULL OR a.title ILIKE '%'||$1||'%' OR a.excerpt ILIKE '%'||$1||'%') AND ($2::text IS NULL OR a.status=$2)
+   AND ($3::uuid IS NULL OR a.category_id=$3) AND ($4::uuid IS NULL OR EXISTS(SELECT 1 FROM article_tags x WHERE x.article_id=a.id AND x.tag_id=$4))
+   AND ($5::uuid IS NULL OR EXISTS(SELECT 1 FROM article_divisions x WHERE x.article_id=a.id AND x.division_id=$5))
+   ORDER BY a.updated_at DESC LIMIT $6 OFFSET $7`,[filter.search??null,filter.status??null,filter.category??null,filter.tag??null,filter.division??null,filter.limit,filter.offset]);
+ return result.rows;
+}
+export async function saveArticle(pool:pg.Pool,input:z.infer<typeof ArticleInput>,actorId:string,id?:string){
+ const client=await pool.connect(); try { await client.query('BEGIN');
+  const published=input.status==='PUBLISHED'?(input.published_at??new Date().toISOString()):input.published_at;
+  let row;
+  if(id){const r=await client.query(`UPDATE articles SET title=$2,slug=$3,excerpt=$4,content=$5,body=$5,category_id=$6,author_id=$7,status=$8,published_at=$9,thumbnail_media_id=$10,updated_at=now() WHERE id=$1 RETURNING *`,[id,input.title,input.slug,input.excerpt,input.content,input.category_id,input.author_id??actorId,input.status,published,input.thumbnail_media_id]); row=r.rows[0]; if(!row)throw new ManagementError(404,'NOT_FOUND','Article not found.');}
+  else {const r=await client.query(`INSERT INTO articles(title,slug,excerpt,content,body,category_id,author_id,status,published_at,thumbnail_media_id) VALUES($1,$2,$3,$4,$4,$5,$6,$7,$8,$9) RETURNING *`,[input.title,input.slug,input.excerpt,input.content,input.category_id,input.author_id??actorId,input.status,published,input.thumbnail_media_id]);row=r.rows[0];}
+  await client.query('DELETE FROM article_tags WHERE article_id=$1',[row.id]); await client.query('DELETE FROM article_divisions WHERE article_id=$1',[row.id]);
+  await client.query('DELETE FROM article_media WHERE article_id=$1',[row.id]);
+  for(const tag of input.tag_ids)await client.query('INSERT INTO article_tags(article_id,tag_id) VALUES($1,$2)',[row.id,tag]);
+  for(const division of input.division_ids)await client.query('INSERT INTO article_divisions(article_id,division_id) VALUES($1,$2)',[row.id,division]);
+  for(const [sortOrder,mediaId] of input.image_media_ids.entries())await client.query('INSERT INTO article_media(article_id,media_id,sort_order) VALUES($1,$2,$3)',[row.id,mediaId,sortOrder]);
+  await client.query('COMMIT'); return row;
+ }catch(e){await client.query('ROLLBACK');if(sqlStatus(e)==='23505')throw new ManagementError(409,'DUPLICATE_SLUG','That slug is already in use.');throw e;}finally{client.release();}
+}
+export async function taxonomy(pool:pg.Pool,kind:TaxonomyKind){return (await pool.query(`SELECT * FROM ${taxonomyTables[kind]} ORDER BY name`)).rows;}
+export async function saveTaxonomy(pool:pg.Pool,kind:TaxonomyKind,input:z.infer<typeof TaxonomyInput>,id?:string){const table=taxonomyTables[kind];try{const r=id?await pool.query(`UPDATE ${table} SET name=$2,slug=$3${kind==='divisions'?',description=$4':''}${kind==='divisions'?',updated_at=now()':''} WHERE id=$1 RETURNING *`,kind==='divisions'?[id,input.name,input.slug,input.description??null]:[id,input.name,input.slug]):await pool.query(`INSERT INTO ${table}(name,slug${kind==='divisions'?',description':''}) VALUES($1,$2${kind==='divisions'?', $3':''}) RETURNING *`,kind==='divisions'?[input.name,input.slug,input.description??null]:[input.name,input.slug]);if(!r.rowCount)throw new ManagementError(404,'NOT_FOUND','Record not found.');return r.rows[0];}catch(e){if(sqlStatus(e)==='23505')throw new ManagementError(409,'DUPLICATE_SLUG','Name or slug is already in use.');throw e;}}
+export async function saveDanceService(pool:pg.Pool,x:z.infer<typeof DanceServiceInput>,id?:string){try{const r=id?await pool.query(`UPDATE dance_services SET name=$2,slug=$3,description=$4,price_per_performance=$5,image_media_id=$6,is_active=$7,updated_at=now() WHERE id=$1 RETURNING *`,[id,x.name,x.slug,x.description,x.price_per_performance,x.image_media_id??null,x.is_active]):await pool.query(`INSERT INTO dance_services(name,slug,description,price_per_performance,image_media_id,is_active) VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,[x.name,x.slug,x.description,x.price_per_performance,x.image_media_id??null,x.is_active]);if(!r.rowCount)throw new ManagementError(404,'NOT_FOUND','Dance service not found.');return r.rows[0];}catch(e){if(sqlStatus(e)==='23505')throw new ManagementError(409,'DUPLICATE_SLUG','That slug is already in use.');throw e;}}
+export async function saveInventoryItem(pool:pg.Pool,x:z.infer<typeof InventoryItemInput>,id?:string){
+ const client=await pool.connect();try{await client.query('BEGIN');
+  if(id){const locked=await client.query('SELECT id FROM inventory_items WHERE id=$1 FOR UPDATE',[id]);if(!locked.rowCount)throw new ManagementError(404,'NOT_FOUND','Inventory item not found.');
+   const reserved=await client.query<{quantity:number|string}>(`SELECT COALESCE(max(day_total),0) quantity FROM (
+    SELECT dates.day::date,SUM(i.quantity) day_total FROM booking_items i JOIN bookings b ON b.id=i.booking_id
+    CROSS JOIN LATERAL generate_series(GREATEST(b.start_date,CURRENT_DATE)::timestamp,b.end_date::timestamp,interval '1 day') dates(day)
+    WHERE i.item_id=$1 AND b.end_date>=CURRENT_DATE AND (b.status='CONFIRMED' OR (b.status='PENDING_PAYMENT' AND b.expires_at>clock_timestamp())) GROUP BY dates.day
+   ) active_days`,[id]);
+   if(Number(reserved.rows[0]?.quantity??0)>x.total_quantity)throw new ManagementError(409,'QUANTITY_BELOW_RESERVED','Total quantity cannot be lower than the highest active daily reservation.');
+  }
+  const r=id?await client.query(`UPDATE inventory_items SET category_id=$2,name=$3,slug=$4,description=$5,price_per_unit_per_day=$6,total_quantity=$7,image_media_id=$8,is_active=$9,updated_at=now() WHERE id=$1 RETURNING *`,[id,x.category_id,x.name,x.slug,x.description,x.price_per_unit_per_day,x.total_quantity,x.image_media_id??null,x.is_active]):await client.query(`INSERT INTO inventory_items(category_id,name,slug,description,price_per_unit_per_day,total_quantity,image_media_id,is_active) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,[x.category_id,x.name,x.slug,x.description,x.price_per_unit_per_day,x.total_quantity,x.image_media_id??null,x.is_active]);
+  await client.query('COMMIT');return r.rows[0];
+ }catch(e){await client.query('ROLLBACK').catch(()=>undefined);if(sqlStatus(e)==='23505')throw new ManagementError(409,'DUPLICATE_SLUG','That slug is already in use.');throw e;}finally{client.release();}}
+export async function saveOrganization(pool:pg.Pool,x:z.infer<typeof OrgInput>){const r=await pool.query(`INSERT INTO organization_info(singleton_key,name,description,history,address,phone,email,logo_media_id) VALUES(true,$1,$2,$3,$4,$5,$6,$7) ON CONFLICT(singleton_key) DO UPDATE SET name=excluded.name,description=excluded.description,history=excluded.history,address=excluded.address,phone=excluded.phone,email=excluded.email,logo_media_id=excluded.logo_media_id,updated_at=now() RETURNING *`,[x.name,x.description,x.history,x.address??null,x.phone??null,x.email??null,x.logo_media_id??null]);return r.rows[0];}
+export async function saveMember(pool:pg.Pool,x:z.infer<typeof MemberInput>,id?:string){const r=id?await pool.query(`UPDATE organization_members SET name=$2,position=$3,bio=$4,division_id=$5,photo_media_id=$6,sort_order=$7,is_active=$8,updated_at=now() WHERE id=$1 RETURNING *`,[id,x.name,x.position,x.bio??null,x.division_id??null,x.photo_media_id??null,x.sort_order,x.is_active]):await pool.query(`INSERT INTO organization_members(name,position,bio,division_id,photo_media_id,sort_order,is_active) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[x.name,x.position,x.bio??null,x.division_id??null,x.photo_media_id??null,x.sort_order,x.is_active]);if(!r.rowCount)throw new ManagementError(404,'NOT_FOUND','Member not found.');return r.rows[0];}
+export async function logManagement(pool:pg.Pool,actor:{id:string;role:AdminRole},action:string,type:string,id:string|undefined,after?:unknown){await pool.query('INSERT INTO audit_logs(actor_id,actor_role,action,entity_type,entity_id,after_data) VALUES($1,$2,$3,$4,$5,$6)',[actor.id,actor.role,action,type,id??null,after===undefined?null:JSON.stringify(after)]);}

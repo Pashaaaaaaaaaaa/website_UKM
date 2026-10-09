@@ -25,8 +25,8 @@ try {
     ['Selamat Datang', 'selamat-datang', 'Berita pengembangan organisasi dan layanannya.'],
     ['Kegiatan Seni Budaya', 'kegiatan-seni-budaya', 'Informasi kegiatan seni budaya komunitas.'],
   ];
-  for (const [title, slug, body] of articles) await client.query(`INSERT INTO articles(title,slug,body,author_id,status,published_at)
-    VALUES($1,$2,$3,$4,'PUBLISHED',now()) ON CONFLICT(slug) DO NOTHING`, [title, slug, body, admin.rows[0]!.id]);
+  for (const [title, slug, body] of articles) await client.query(`INSERT INTO articles(title,slug,body,content,author_id,status,published_at)
+    VALUES($1,$2,$3,$3,$4,'PUBLISHED',now()) ON CONFLICT(slug) DO NOTHING`, [title, slug, body, admin.rows[0]!.id]);
   await client.query(`INSERT INTO organization_info(singleton_key,name,history)
     VALUES(true,'Organisasi UKM','Data contoh pengembangan; ganti dengan sejarah organisasi yang telah diverifikasi.') ON CONFLICT(singleton_key) DO NOTHING`);
   await client.query(`INSERT INTO organization_members(name,position,sort_order)

@@ -88,6 +88,23 @@ export function createAdminBookingRouter(pool: pg.Pool): Router {
     catch (error) { return sendError(res,error); }
   });
 
+  router.get('/bookings/:code/payment-confirmations', async (req,res) => {
+    const domain = roleDomain(req.admin!.role);
+    if (!domain) return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Your role cannot access rental booking proof.' } });
+    const code=req.params.code!;
+    if (!isValidCode(code)) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid booking code.' } });
+    try {
+      const result=await pool.query(`SELECT p.id,p.payment_method,p.amount,p.reference,p.submitted_at,p.reviewed_at,p.status,
+        m.bucket,m.object_path,m.mime_type,m.size_bytes,m.alt_text
+        FROM bookings b JOIN payment_confirmations p ON p.booking_id=b.id
+        LEFT JOIN media_assets m ON m.id=p.proof_media_id
+        WHERE b.booking_code=$1 AND b.rental_domain=$2 ORDER BY p.submitted_at DESC`,[code,domain]);
+      const storageUrl=process.env.SUPABASE_URL?.replace(/\/$/,'');
+      return res.json({data:result.rows.map(row=>({...row,proof_url:storageUrl&&row.bucket&&row.object_path
+        ?`${storageUrl}/storage/v1/object/public/${row.bucket}/${String(row.object_path).split('/').map(encodeURIComponent).join('/')}`:null}))});
+    } catch (error) { return sendError(res,error); }
+  });
+
   router.post('/bookings/:code/confirm-payment', async (req,res) => {
     const code = req.params.code!;
     if (!isValidCode(code)) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid booking code.' } });

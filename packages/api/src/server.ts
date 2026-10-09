@@ -9,6 +9,7 @@ import { getPool } from '../../database/src/client.ts';
 import { createAdminAuthRouter, type AuthOptions } from './auth.ts';
 import { createAdminBookingRouter, createPublicBookingRouter } from './booking-routes.ts';
 import { startBookingExpiryWorker } from './booking-service.ts';
+import { createManagementRouter, createPublicContentRouter } from './management-routes.ts';
 
 export function createApp(pool: pg.Pool = getPool(), authOptions: AuthOptions = {}) {
   const app = express();
@@ -16,7 +17,7 @@ export function createApp(pool: pg.Pool = getPool(), authOptions: AuthOptions = 
   app.disable('x-powered-by');
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.includes(origin)), credentials: true, methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'], allowedHeaders: ['Content-Type'] }));
-  app.use(express.json({ limit: '1mb', strict: true }));
+  app.use(express.json({ limit: '11mb', strict: true }));
 
   app.get('/health', async (_req, res) => {
     try { await pool.query('SELECT 1'); res.json({ data: { status: 'ok', database: 'connected' } }); }
@@ -25,6 +26,8 @@ export function createApp(pool: pg.Pool = getPool(), authOptions: AuthOptions = 
 
   app.use('/api/admin', createAdminAuthRouter(pool, authOptions));
   app.use('/api/admin', createAdminBookingRouter(pool));
+  app.use('/api/admin', createManagementRouter(pool));
+  app.use('/api/public', createPublicContentRouter(pool));
   app.use('/api/public', createPublicBookingRouter(pool));
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -15,6 +15,10 @@ describe('PostgreSQL integration', { skip: !configured }, () => {
     assert.equal(authMigration.rowCount, 1);
     const bookingMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='003_booking_engine.sql'");
     assert.equal(bookingMigration.rowCount, 1);
+    const cmsMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='004_cms_management.sql'");
+    assert.equal(cmsMigration.rowCount, 1);
+    const articleMediaMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='005_article_media.sql'");
+    assert.equal(articleMediaMigration.rowCount, 1);
     const authTables = await getPool().query(`SELECT table_name FROM information_schema.tables
       WHERE table_schema=current_schema() AND table_name='admin_sessions'`);
     assert.equal(authTables.rowCount, 1);
