@@ -51,11 +51,29 @@ export class LoginLimiter {
 // eslint-disable-next-line @typescript-eslint/no-namespace
 declare global { namespace Express { interface Request { admin?: AdminPrincipal } } }
 
+export function createAdminAuthMiddleware(pool: pg.Pool) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.headers.cookie?.split(';').map(value => value.trim()).find(value => value.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
+    if (!token) return json(res, 401, { error: { code: 'UNAUTHENTICATED', message: 'Sign in is required.' } });
+    try {
+      const found = await pool.query<{ id: string; name: string; email: string; role: string; expires_at: Date }>(
+        `SELECT u.id,u.name,u.email,r.code AS role,s.expires_at FROM admin_sessions s JOIN admin_users u ON u.id=s.admin_user_id JOIN roles r ON r.id=u.role_id
+         WHERE s.token_hash=$1 AND s.expires_at>now() AND u.is_active=true`, [hashToken(token)]);
+      const row = found.rows[0];
+      if (!row) return json(res, 401, { error: { code: 'UNAUTHENTICATED', message: 'Session is invalid or expired.' } });
+      req.admin = { id: row.id, name: row.name, email: row.email, role: AdminRoleSchema.parse(row.role) };
+      void pool.query('UPDATE admin_sessions SET last_seen_at=now() WHERE token_hash=$1', [hashToken(token)]).catch(() => undefined);
+      return next();
+    } catch { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: 'Unable to verify session.' } }); }
+  };
+}
+
 export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}): Router {
   const router = Router();
   const limiter = new LoginLimiter(options.maxAttempts, options.windowMs, options.now);
   const secure = options.secureCookies ?? process.env.NODE_ENV === 'production';
   const ip = (req: Request) => req.ip ?? req.socket.remoteAddress ?? 'unknown';
+  const authenticate = createAdminAuthMiddleware(pool);
   const cookieOptions = `Path=/api/admin; HttpOnly; SameSite=Strict; Max-Age=${Math.floor(SESSION_MS / 1000)}${secure ? '; Secure' : ''}`;
   const clearCookie = `Path=/api/admin; HttpOnly; SameSite=Strict; Max-Age=0${secure ? '; Secure' : ''}`;
 
@@ -92,21 +110,6 @@ export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}):
     } catch { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: 'Unable to sign in.' } }); }
   });
 
-  const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers.cookie?.split(';').map(value => value.trim()).find(value => value.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
-    if (!token) return json(res, 401, { error: { code: 'UNAUTHENTICATED', message: 'Sign in is required.' } });
-    try {
-      const found = await pool.query<{ id: string; name: string; email: string; role: string; expires_at: Date }>(
-        `SELECT u.id,u.name,u.email,r.code AS role,s.expires_at FROM admin_sessions s JOIN admin_users u ON u.id=s.admin_user_id JOIN roles r ON r.id=u.role_id
-         WHERE s.token_hash=$1 AND s.expires_at>now() AND u.is_active=true`, [hashToken(token)]);
-      const row = found.rows[0];
-      if (!row) return json(res, 401, { error: { code: 'UNAUTHENTICATED', message: 'Session is invalid or expired.' } });
-      req.admin = { id: row.id, name: row.name, email: row.email, role: AdminRoleSchema.parse(row.role) };
-      void pool.query('UPDATE admin_sessions SET last_seen_at=now() WHERE token_hash=$1', [hashToken(token)]).catch(() => undefined);
-      return next();
-    } catch { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: 'Unable to verify session.' } }); }
-  };
-
   router.post('/auth/logout', authenticate, async (req, res) => {
     const token = req.headers.cookie!.split(';').map(value => value.trim()).find(value => value.startsWith(`${COOKIE}=`))!.slice(COOKIE.length + 1);
     try {
@@ -118,10 +121,9 @@ export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}):
     } catch { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: 'Unable to sign out.' } }); }
   });
   router.get('/auth/me', authenticate, (req, res) => res.json({ data: { user: req.admin } }));
-  router.use(authenticate);
-  router.get('/news', requireRole('NEWS_ADMIN'), (_req, res) => res.json({ data: { area: 'news' } }));
-  router.get('/rentals/dance', requireRole('MANAGER'), (_req, res) => res.json({ data: { area: 'dance' } }));
-  router.get('/rentals/brt', requireRole('BRT_ADMIN'), (_req, res) => res.json({ data: { area: 'brt' } }));
+  router.get('/news', authenticate, requireRole('NEWS_ADMIN'), (_req, res) => res.json({ data: { area: 'news' } }));
+  router.get('/rentals/dance', authenticate, requireRole('MANAGER'), (_req, res) => res.json({ data: { area: 'dance' } }));
+  router.get('/rentals/brt', authenticate, requireRole('BRT_ADMIN'), (_req, res) => res.json({ data: { area: 'brt' } }));
   return router;
 }
 

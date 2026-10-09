@@ -13,6 +13,8 @@ describe('PostgreSQL integration', { skip: !configured }, () => {
     assert.equal(result.rowCount, 1);
     const authMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='002_admin_auth.sql'");
     assert.equal(authMigration.rowCount, 1);
+    const bookingMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='003_booking_engine.sql'");
+    assert.equal(bookingMigration.rowCount, 1);
     const authTables = await getPool().query(`SELECT table_name FROM information_schema.tables
       WHERE table_schema=current_schema() AND table_name='admin_sessions'`);
     assert.equal(authTables.rowCount, 1);
@@ -44,7 +46,7 @@ describe('PostgreSQL integration', { skip: !configured }, () => {
       const role = await client.query("SELECT id FROM roles WHERE code='MANAGER'");
       const admin = await client.query("INSERT INTO admin_users(name,email,password_hash,role_id) VALUES('Integration','integration-'||gen_random_uuid()||'@test.invalid','x',$1) RETURNING id",[role.rows[0].id]);
       const service = await client.query("INSERT INTO dance_services(name,slug,price_per_performance) VALUES('Integration','integration-'||gen_random_uuid(),100) RETURNING id");
-      const booking = await client.query("INSERT INTO bookings(booking_code,customer_name,customer_phone,rental_domain,start_date,end_date) VALUES('TEST-'||gen_random_uuid(),'Test','123','DANCE',current_date,current_date) RETURNING id");
+      const booking = await client.query("INSERT INTO bookings(booking_code,customer_name,customer_phone,rental_domain,start_date,end_date,expires_at) VALUES('TEST-'||gen_random_uuid(),'Test','123','DANCE',current_date,current_date,now()+interval '24 hours') RETURNING id");
       await client.query("INSERT INTO booking_items(booking_id,service_id,quantity,unit_price_snapshot,rental_days,subtotal) VALUES($1,$2,1,100,1,100)",[booking.rows[0].id,service.rows[0].id]);
       await client.query('UPDATE dance_services SET price_per_performance=250 WHERE id=$1',[service.rows[0].id]);
       const snapshot = await client.query('SELECT unit_price_snapshot FROM booking_items WHERE booking_id=$1',[booking.rows[0].id]);

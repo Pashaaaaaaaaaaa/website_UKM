@@ -17,6 +17,7 @@
     "db:migrate": "node packages/database/src/migrate.ts",
     "db:seed": "node packages/database/src/seed.ts",
     "db:setup": "npm run db:migrate && npm run db:seed",
+    "bookings:expire": "node packages/api/src/expire-bookings.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
