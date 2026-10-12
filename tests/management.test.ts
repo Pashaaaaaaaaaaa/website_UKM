@@ -6,10 +6,12 @@ import { getPool } from '../packages/database/src/client.ts';
 import { createApp } from '../packages/api/src/server.ts';
 import { createBooking } from '../packages/api/src/booking-service.ts';
 
-const enabled=Boolean(process.env.DATABASE_URL);
+const testDatabaseUrl=process.env.TEST_DATABASE_URL;
+process.env.DATABASE_URL=testDatabaseUrl??'postgresql://localhost/ukm_tests_disabled';
+const enabled=Boolean(testDatabaseUrl);
 describe('CMS and administrative management API', {skip:!enabled},()=>{
  const pool=getPool();let server:ReturnType<ReturnType<typeof createApp>['listen']>;let base='';let news='';let manager='';let brt='';
- const call=(path:string,method='GET',cookie=news,body?:unknown)=>fetch(`${base}${path}`,{method,headers:{...(cookie?{cookie}:{}),...(body===undefined?{}:{'content-type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ const call=(path:string,method='GET',cookie=news,body?:unknown)=>fetch(`${base}${path}`,{method,headers:{Origin:'http://localhost:3001',...(cookie?{cookie}:{}),...(body===undefined?{}:{'content-type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
  async function login(email:string){const r=await fetch(`${base}/api/admin/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password:'ChangeMe-Dev-Only-123!'})});assert.equal(r.status,200);return r.headers.get('set-cookie')!.split(';')[0]!;}
  before(async()=>{server=createApp(pool).listen(0);await new Promise<void>(resolve=>server.once('listening',resolve));const address=server.address();if(!address||typeof address==='string')throw new Error('API test server did not start');base=`http://127.0.0.1:${address.port}`;news=await login('news-admin@development.invalid');manager=await login('manager@development.invalid');brt=await login('brt-admin@development.invalid');});
  after(async()=>{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await pool.end();});

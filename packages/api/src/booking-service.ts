@@ -164,6 +164,10 @@ export async function createBooking(pool: pg.Pool, input: CreateBookingInput, op
       const unitCents = priceToCents(resources.get(id)!.price);
       const subtotalCents = unitCents * BigInt(line.quantity) * BigInt(days);
       totalCents += subtotalCents;
+      const maxDatabaseCents = 99_999_999_999_999n;
+      if (subtotalCents > maxDatabaseCents || totalCents > maxDatabaseCents) {
+        throw new BookingError(400, 'PRICE_TOTAL_TOO_LARGE', 'The calculated booking total exceeds the supported payment amount.');
+      }
       createdItems.push({ resource_id: id, name: resources.get(id)!.name, quantity: line.quantity, unit_price_snapshot: Number(unitCents) / 100, subtotal: Number(subtotalCents) / 100 });
       await client.query(`INSERT INTO booking_items(booking_id,service_id,item_id,quantity,unit_price_snapshot,rental_days,subtotal)
         VALUES($1,$2,$3,$4,$5,$6,$7)`, [bookingId,input.domain === 'DANCE' ? id : null,input.domain === 'BRT' ? id : null,

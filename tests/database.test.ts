@@ -3,7 +3,9 @@ import { after, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkDatabase, getPool } from '../packages/database/src/client.ts';
 
-const configured = Boolean(process.env.DATABASE_URL);
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+process.env.DATABASE_URL = testDatabaseUrl ?? 'postgresql://localhost/ukm_tests_disabled';
+const configured = Boolean(testDatabaseUrl);
 describe('PostgreSQL integration', { skip: !configured }, () => {
   after(async () => { await getPool().end(); });
 
@@ -21,6 +23,10 @@ describe('PostgreSQL integration', { skip: !configured }, () => {
     assert.equal(articleMediaMigration.rowCount, 1);
     const organizationMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='008_organization_hierarchy.sql'");
     assert.equal(organizationMigration.rowCount, 1);
+    const loginLimitsMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='009_persistent_login_limits.sql'");
+    assert.equal(loginLimitsMigration.rowCount, 1);
+    const integrityMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='010_integrity_guards.sql'");
+    assert.equal(integrityMigration.rowCount, 1);
     const organizationUnits = await getPool().query("SELECT table_name FROM information_schema.tables WHERE table_schema=current_schema() AND table_name='organization_units'");
     assert.equal(organizationUnits.rowCount, 1);
     const authTables = await getPool().query(`SELECT table_name FROM information_schema.tables

@@ -32,35 +32,18 @@ export interface AuthStore {
 }
 export interface AuthOptions { secureCookies?: boolean; now?: () => number; maxAttempts?: number; windowMs?: number }
 
-export class LoginLimiter {
-  private readonly attempts = new Map<string, { count: number; resetAt: number }>();
-  private readonly maxAttempts: number;
-  private readonly windowMs: number;
-  private readonly now: () => number;
-  constructor(maxAttempts = 5, windowMs = 15 * 60_000, now = Date.now) {
-    this.maxAttempts = maxAttempts;
-    this.windowMs = windowMs;
-    this.now = now;
-  }
-  isLimited(key: string): boolean {
-    const entry = this.attempts.get(key);
-    if (!entry || entry.resetAt <= this.now()) { this.attempts.delete(key); return false; }
-    return entry.count >= this.maxAttempts;
-  }
-  fail(key: string): void {
-    const entry = this.attempts.get(key);
-    if (!entry || entry.resetAt <= this.now()) this.attempts.set(key, { count: 1, resetAt: this.now() + this.windowMs });
-    else entry.count += 1;
-  }
-  clear(key: string): void { this.attempts.delete(key); }
-}
-
 // Express request augmentation is required for the server-side auth middleware.
 // eslint-disable-next-line @typescript-eslint/no-namespace
 declare global { namespace Express { interface Request { admin?: AdminPrincipal } } }
 
 export function createAdminAuthMiddleware(pool: pg.Pool) {
   return async (req: Request, res: Response, next: NextFunction) => {
+    const bearerToken = req.get('authorization')?.startsWith('Bearer ') ?? false;
+    if (!bearerToken && ['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      const origin = req.get('origin');
+      const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000,http://localhost:3001').split(',').map(value => value.trim());
+      if (!origin || !allowedOrigins.includes(origin)) return json(res, 403, { error: { code: 'CSRF_REJECTED', message: 'Request origin is not allowed.' } });
+    }
     const token = requestToken(req);
     if (!token) return json(res, 401, { error: { code: 'UNAUTHENTICATED', message: 'Sign in is required.' } });
     try {
@@ -78,7 +61,11 @@ export function createAdminAuthMiddleware(pool: pg.Pool) {
 
 export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}): Router {
   const router = Router();
-  const limiter = new LoginLimiter(options.maxAttempts, options.windowMs, options.now);
+  const maxAttempts = options.maxAttempts ?? 5;
+  const windowMs = options.windowMs ?? 15 * 60_000;
+  const fallbackAttempts = new Map<string, { count: number; resetAt: number }>();
+  let persistentLimiterAvailable = true;
+  let fallbackWarningLogged = false;
   const secure = options.secureCookies ?? process.env.NODE_ENV === 'production';
   const ip = (req: Request) => req.ip ?? req.socket.remoteAddress ?? 'unknown';
   const authenticate = createAdminAuthMiddleware(pool);
@@ -86,10 +73,39 @@ export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}):
 
   router.post('/auth/login', async (req, res) => {
     const key = ip(req);
-    if (limiter.isLimited(key)) return json(res, 429, { error: { code: 'RATE_LIMITED', message: 'Too many login attempts. Try again later.' } });
+    const ipHash = createHash('sha256').update(key).digest('hex');
+    const now = new Date(options.now?.() ?? Date.now());
+    let limited = false;
+    if (persistentLimiterAvailable) {
+      try {
+        const attempt = await pool.query<{ failed_attempts: number; window_active: boolean }>(
+          `INSERT INTO auth_login_attempts(ip_hash,failed_attempts,window_started_at,updated_at) VALUES($1,1,$2,$2)
+           ON CONFLICT(ip_hash) DO UPDATE SET
+             failed_attempts=CASE WHEN auth_login_attempts.window_started_at <= $2::timestamptz - ($3::bigint * interval '1 millisecond') THEN 1 WHEN auth_login_attempts.failed_attempts > $4 THEN $4+1 ELSE auth_login_attempts.failed_attempts+1 END,
+             window_started_at=CASE WHEN auth_login_attempts.window_started_at <= $2::timestamptz - ($3::bigint * interval '1 millisecond') THEN $2 ELSE auth_login_attempts.window_started_at END,
+             updated_at=$2
+           RETURNING failed_attempts,(window_started_at > $2::timestamptz - ($3::bigint * interval '1 millisecond')) AS window_active`, [ipHash, now, windowMs, maxAttempts]);
+        limited = Boolean(attempt.rows[0]?.window_active && Number(attempt.rows[0].failed_attempts) > maxAttempts);
+      } catch (error) {
+        if (typeof error !== 'object' || error === null || !('code' in error) || String(error.code) !== '42P01') throw error;
+        persistentLimiterAvailable = false;
+        if (!fallbackWarningLogged) {
+          console.warn('Persistent login limiter table is missing; apply database migrations and restart the API.');
+          fallbackWarningLogged = true;
+        }
+      }
+    }
+    if (!persistentLimiterAvailable) {
+      const current = fallbackAttempts.get(ipHash);
+      if (!current || current.resetAt <= now.getTime()) fallbackAttempts.set(ipHash, { count: 1, resetAt: now.getTime() + windowMs });
+      else if (current.count >= maxAttempts) limited = true;
+      else current.count += 1;
+    }
+    if (limited) {
+      return json(res, 429, { error: { code: 'RATE_LIMITED', message: 'Too many login attempts. Try again later.' } });
+    }
     const parsed = LoginSchema.safeParse(req.body);
     if (!parsed.success) {
-      limiter.fail(key);
       try { await pool.query('INSERT INTO audit_logs(action,entity_type,ip_address) VALUES($1,$2,$3)', ['LOGIN_FAILED','admin_user', key]); }
       catch { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: 'Unable to sign in.' } }); }
       return json(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'Invalid login input.' } });
@@ -100,11 +116,11 @@ export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}):
       const user = found.rows[0];
       const validPassword = await bcrypt.compare(parsed.data.password, user?.password_hash ?? DUMMY_PASSWORD_HASH);
       if (!user || !user.is_active || !validPassword) {
-        limiter.fail(key);
         await pool.query('INSERT INTO audit_logs(action,entity_type,ip_address) VALUES($1,$2,$3)', ['LOGIN_FAILED','admin_user', key]);
         return json(res, 401, { error: { code: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' } });
       }
-      limiter.clear(key);
+      if (persistentLimiterAvailable) await pool.query('DELETE FROM auth_login_attempts WHERE ip_hash=$1', [ipHash]);
+      else fallbackAttempts.delete(ipHash);
       const principal: AdminPrincipal = { id: user.id, name: user.name, email: user.email, role: AdminRoleSchema.parse(user.role) };
       const token = randomBytes(32).toString('base64url');
       const cookieName = tabCookieName(req.get(TAB_ID_HEADER));

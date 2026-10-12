@@ -58,14 +58,14 @@ npm run db:migrate
 npm run db:seed
 npm run db:setup
 npm run bookings:expire
-npm test                # domain tests and configured DB integration tests
+npm test                # unit tests and TEST_DATABASE_URL integration tests
 npm run test:watch
 npm run lint
 npm run typecheck
 npm run build           # API plus both Next.js production builds
 ```
 
-PostgreSQL integration tests run when `DATABASE_URL` is set. Apply migrations and seed first (`npm run db:setup`) so tests can verify the migration ledger and exercise real database constraints, including concurrent booking attempts. Booking fixtures clean up their committed test rows after each suite.
+PostgreSQL integration tests run only when `TEST_DATABASE_URL` is set. Point it at a disposable test database, apply migrations and seed first, then run the suite. It verifies the migration ledger and real database constraints, including concurrent booking attempts. Booking fixtures clean up their committed test rows after each suite. Test code will not fall back to the application's `DATABASE_URL`.
 
 ## Database domains
 
@@ -102,7 +102,8 @@ Set `BOOKING_ALLOW_PAST_DATES=true` only when a deployment explicitly allows pas
 
 - `POST /api/admin/auth/login`, `POST /api/admin/auth/logout`, and `GET /api/admin/auth/me` use an opaque, database-backed session cookie.
 - Session tokens are random, stored only as SHA-256 hashes, expire after eight hours, and are invalidated on logout. Cookies are HttpOnly, SameSite=Strict, scoped to `/api/admin`, and Secure in production.
-- Passwords use bcrypt. Login input is Zod-validated, failures are generic and audited, and an in-process per-IP limiter allows five failures per 15 minutes.
+- Passwords use bcrypt. Login input is Zod-validated, failures are generic and audited, and a PostgreSQL-backed per-IP limiter allows five attempts per 15 minutes across process restarts and API replicas.
+- Cookie-authenticated state-changing requests must include an `Origin` listed in `CORS_ORIGIN`; bearer-token requests are not cookie-CSRF dependent.
 - The CMS and rental management endpoints enforce role checks on the server. NEWS_ADMIN has no rental CRUD access, MANAGER cannot administer BRT, and BRT_ADMIN cannot administer Dance.
 - Login, logout, failed login, content CRUD, moderation, media uploads, organization changes, rental catalog changes, and payment confirmation create audit records with actor and role where applicable.
 - Admin login is at `http://localhost:3001/login`. After sign-in, the server-provided role selects `/news`, `/manager`, or `/brt`; no role is accepted from the browser. The Next.js admin app proxies `/api/*` to `API_BASE_URL`.
@@ -115,4 +116,6 @@ The public site provides Home, About, Rentals, separate Dance and BRT catalogs, 
 
 ## Environment variables
 
-Copy `.env.example` to `.env`. The service role key is consumed only by the server package. Do not commit `.env` or production secrets.
+Copy `.env.example` to `.env`. For production, configure `NODE_ENV=production`, HTTPS, an exact `CORS_ORIGIN` allowlist, the project root URL, a server-only `SUPABASE_SERVICE_ROLE_KEY`, and the production PostgreSQL connection string. Run `npm run db:migrate` before deploying code that depends on new migrations. Never run the development seed in a shared or production environment. The service role key is consumed only by the server package; do not commit it or expose it in `NEXT_PUBLIC_*` variables.
+
+PostgreSQL integration tests use `TEST_DATABASE_URL` only. Point it at a disposable test database with all migrations and development seed data applied; `npm test` intentionally skips database integration suites when it is unset and will never fall back to the app's `DATABASE_URL`.

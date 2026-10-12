@@ -11,7 +11,9 @@ import {
 } from '../packages/api/src/booking-service.ts';
 import type { CreateBookingInput } from '../packages/domain/src/booking.ts';
 
-const configured = Boolean(process.env.DATABASE_URL);
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+process.env.DATABASE_URL = testDatabaseUrl ?? 'postgresql://localhost/ukm_tests_disabled';
+const configured = Boolean(testDatabaseUrl);
 const prefix = `booking-test:${randomUUID()}`;
 const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0,10);
 let danceId = '';
@@ -43,7 +45,7 @@ async function callApi(roleAdminId: string, role: 'MANAGER'|'BRT_ADMIN'|null, pa
   const address=server.address(); if (!address || typeof address === 'string') throw new Error('Test API failed to bind');
   try {
     return await fetch(`http://127.0.0.1:${address.port}${path}`, {
-      method, headers: { ...(role ? { cookie: `ukm_admin_session=${token}` } : {}), ...(body ? { 'content-type':'application/json' } : {}) },
+      method, headers: { Origin: 'http://localhost:3001', ...(role ? { cookie: `ukm_admin_session=${token}` } : {}), ...(body ? { 'content-type':'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
   } finally {
@@ -114,6 +116,12 @@ describe('PostgreSQL booking engine integration', { skip: !configured }, () => {
   it('rejects inventory quantities beyond capacity', async () => {
     await assert.rejects(createBooking(pool(),input('BRT',itemId,nextDates(),11),{allowPastDates:true}),
       (error: unknown) => error instanceof BookingError && error.code==='INSUFFICIENT_INVENTORY');
+  });
+
+  it('rejects totals that exceed the database payment amount precision', async () => {
+    const resource=await createStock(10_000,'100000000.00');
+    await assert.rejects(createBooking(pool(),input('BRT',resource,nextDates(366),10_000),{allowPastDates:true}),
+      (error: unknown) => error instanceof BookingError && error.status===400 && error.code==='PRICE_TOTAL_TOO_LARGE');
   });
 
   it('checks stock on every day and rejects the whole booking when one date is short', async () => {

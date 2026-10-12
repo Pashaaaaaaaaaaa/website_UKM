@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import { getPool } from '../packages/database/src/client.ts';
 import { createApp } from '../packages/api/src/server.ts';
 
-describe('public website REST API integration', {skip:!process.env.DATABASE_URL},()=>{
+const testDatabaseUrl=process.env.TEST_DATABASE_URL;
+process.env.DATABASE_URL=testDatabaseUrl??'postgresql://localhost/ukm_tests_disabled';
+describe('public website REST API integration', {skip:!testDatabaseUrl},()=>{
   const pool=getPool();let server:ReturnType<ReturnType<typeof createApp>['listen']>;let base='';
   const call=(path:string)=>fetch(`${base}${path}`);
   before(async()=>{server=createApp(pool).listen(0);await new Promise<void>(resolve=>server.once('listening',resolve));const address=server.address();if(!address||typeof address==='string')throw new Error('Public API test server did not start');base=`http://127.0.0.1:${address.port}`;});

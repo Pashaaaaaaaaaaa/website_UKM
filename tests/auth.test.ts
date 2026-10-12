@@ -16,9 +16,20 @@ class FakePool {
   active = true;
   sessionExpired = false;
   sessions = new Set<string>();
+  loginAttempts = new Map<string, { failed_attempts: number; window_started_at: Date }>();
+  loginLimitsUnavailable = false;
   audits: string[] = [];
   constructor(role: AdminRole) { this.role = role; }
   async query(sql: string, values: unknown[] = []) {
+    if (sql.startsWith('INSERT INTO auth_login_attempts')) {
+      if(this.loginLimitsUnavailable)throw Object.assign(new Error('relation does not exist'),{code:'42P01'});
+      const key=String(values[0]),now=new Date(String(values[1])),window=Number(values[2]),max=Number(values[3]),entry=this.loginAttempts.get(key);
+      if(!entry||entry.window_started_at.getTime()<=now.getTime()-window)this.loginAttempts.set(key,{failed_attempts:1,window_started_at:now});
+      else if(entry.failed_attempts<=max)entry.failed_attempts+=1;
+      const current=this.loginAttempts.get(key)!;
+      return {rowCount:1,rows:[{failed_attempts:current.failed_attempts,window_active:current.window_started_at.getTime()>now.getTime()-window}]};
+    }
+    if (sql.startsWith('DELETE FROM auth_login_attempts')) { this.loginAttempts.delete(String(values[0])); return {rowCount:1,rows:[]}; }
     if (sql.includes('FROM admin_users u JOIN roles')) {
       const exists = this.active && values[0] === EMAIL;
       return { rowCount: exists ? 1 : 0, rows: exists ? [{ id: USER_ID, name: 'Admin User', email: EMAIL, role: this.role, password_hash: hash, is_active: true }] : [] };
@@ -44,7 +55,7 @@ async function setup(role: AdminRole = 'NEWS_ADMIN', maxAttempts = 5, secureCook
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Test server did not bind a port');
   const base = `http://127.0.0.1:${address.port}`;
-  const request = (path: string, init: RequestInit = {}) => fetch(`${base}${path}`, { ...init, headers: { ...(init.headers ?? {}) } });
+  const request = (path: string, init: RequestInit = {}) => fetch(`${base}${path}`, { ...init, headers: { Origin: 'http://localhost:3001', ...(init.headers ?? {}) } });
   const login = async (body: unknown = { email: EMAIL, password: PASSWORD }) => {
     const response = await request('/api/admin/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const cookie = response.headers.get('set-cookie')?.split(';')[0];
@@ -110,6 +121,14 @@ describe('admin authentication and RBAC', () => {
     assert.equal((await api.request('/api/admin/auth/me', { headers: { cookie: cookie! } })).status, 401);
   });
 
+  it('rejects cross-origin unsafe requests authenticated only by a cookie', async () => {
+    const api = await create();
+    const { cookie } = await api.login();
+    const response = await api.request('/api/admin/auth/logout', { method: 'POST', headers: { cookie: cookie!, Origin: 'https://attacker.example' } });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json() as { error: { code: string } }).error.code, 'CSRF_REJECTED');
+  });
+
   it('blocks unauthenticated users from admin management APIs', async () => {
     const api = await create();
     assert.equal((await api.request('/api/admin/news')).status, 401);
@@ -155,6 +174,14 @@ describe('admin authentication and RBAC', () => {
 
   it('limits repeated failed logins by client address', async () => {
     const api = await create('NEWS_ADMIN', 2);
+    assert.equal((await api.login({ email: EMAIL, password: 'bad' })).response.status, 401);
+    assert.equal((await api.login({ email: EMAIL, password: 'bad' })).response.status, 401);
+    assert.equal((await api.login({ email: EMAIL, password: 'bad' })).response.status, 429);
+  });
+
+  it('keeps a process-local login limit until the persistent limiter migration is applied', async () => {
+    const api = await create('NEWS_ADMIN', 2);
+    api.pool.loginLimitsUnavailable = true;
     assert.equal((await api.login({ email: EMAIL, password: 'bad' })).response.status, 401);
     assert.equal((await api.login({ email: EMAIL, password: 'bad' })).response.status, 401);
     assert.equal((await api.login({ email: EMAIL, password: 'bad' })).response.status, 429);
