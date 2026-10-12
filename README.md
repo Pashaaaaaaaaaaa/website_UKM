@@ -4,7 +4,7 @@ Foundation for a modular monolith supporting public news, organization informati
 
 ## Architecture
 
-- `apps/web`: public Next.js application (port 3000).
+- `apps/web`: public Next.js application (port 3000), consuming only public REST endpoints.
 - `apps/admin`: separate admin Next.js application (port 3001).
 - `packages/api`: REST API in Express (port 4000); API payloads are validated before reaching the database.
 - `packages/domain`: framework-independent Zod schemas and rental business rules.
@@ -69,7 +69,7 @@ PostgreSQL integration tests run when `DATABASE_URL` is set. Apply migrations an
 
 ## Database domains
 
-The schema includes admin users and exactly three allowed roles; articles, categories, tags, divisions and their join tables; moderated public comments; organization profile and members; dance services; BRT inventory categories/items; bookings, booking items, status history and payment confirmations; media metadata; settings; and audit logs.
+The schema includes admin users and exactly three allowed roles; articles, categories, tags, divisions and their join tables; public comments; organization profile, hierarchical organization units (Chairman → Bidang → Divisi), and members; dance services; BRT inventory categories/items; bookings, booking items, status history and payment confirmations; media metadata; settings; and audit logs.
 
 Bookings are date-only and inclusive (`end_date - start_date + 1`). Dance booking items have a service ID and snapshot a fixed per-performance/per-day price; BRT items have an inventory ID and snapshot a per-unit/per-day price. Subtotals and booking totals are captured at booking creation. Constraints and triggers reject mixed-domain items. Dance services are exclusive over overlapping dates; BRT availability is quantity-based. Pending bookings reserve resources immediately for 24 hours.
 
@@ -85,8 +85,11 @@ Bookings are date-only and inclusive (`end_date - start_date + 1`). Dance bookin
 - `GET/POST /api/admin/news/articles`, `PUT/DELETE /api/admin/news/articles/:id`, and `PATCH /api/admin/news/articles/:id/status`: NEWS_ADMIN CMS with draft/publish/unpublish, search, category/tag/division filters, unique slugs, author, and publication metadata.
 - `/api/admin/news/categories`, `/tags`, `/divisions`, `/comments`, `/organization`, and `/organization/members` provide protected taxonomy CRUD, comment moderation, and organization management.
 - Public content is served by `GET /api/public/articles`, `GET /api/public/articles/:slug`, `POST /api/public/articles/:slug/comments`, taxonomy read endpoints, and `GET /api/public/organization`. Only approved comments are public; new comments are sanitized, pending moderation, and limited by IP.
+- Public catalogs are served by `GET /api/public/rentals/dance/services`, `GET /api/public/rentals/brt/categories`, `GET /api/public/rentals/brt/items`, and `GET /api/public/site-config`. Public news pagination supports `page`, `page_size`, `search`, `category`, `tag`, and `division` filters. The public Next.js app proxies browser `/api/*` requests to the REST API through its rewrite; configure `API_BASE_URL` on the server.
+- Guest booking confirmation responses include the server-calculated total, hold expiration, and item/service names, quantity, price snapshots, and subtotals. WhatsApp URLs use `PUBLIC_MANAGER_WHATSAPP`, the database manager contact setting, or the organization phone, in that order. `PUBLIC_SOCIAL_LINKS` can supply public social links; only HTTPS links are exposed.
 - `GET/POST/PUT/DELETE /api/admin/rentals/dance/manage/services` is MANAGER-only. `/api/admin/rentals/brt/manage/categories` and `/items` are BRT_ADMIN-only. Current stock cannot be reduced below active daily reservations.
-- `POST /api/admin/media` validates role-to-bucket access, image MIME signatures, and an 8 MB limit, then stores media through the server-only Supabase service client. Images are linked to articles, dance services, inventory items, organization details, or members through database media IDs.
+- `POST /api/admin/media` validates role-to-bucket access, image MIME signatures, and an 8 MB limit, then stores media through the server-only Supabase service client. In development, when Supabase Storage is unavailable, files are saved under ignored `.uploads/` and served through `/api/public/media/:id/content`; production requires Supabase Storage configuration. Image media IDs are linked to articles, dance services, inventory items, organization details, or members.
+- NEWS_ADMIN can manage Badan Pengurus units at `/api/admin/news/organization/units`; public organization responses include the units and members needed to render the hierarchy. Contact address, phone, and email are maintained with organization details and appear on the public Home page.
 - Rental dashboards use the existing role-scoped booking and availability APIs; `GET /api/admin/bookings/:code/payment-confirmations` exposes proof metadata only to the matching rental administrator. Payment confirmation continues through the booking service.
 
 Booking states are `PENDING_PAYMENT → CONFIRMED` or `PENDING_PAYMENT → EXPIRED`. PostgreSQL enforces valid transitions and payment-state pairing. The API runs a scheduled expiry worker; `npm run bookings:expire` runs one batch on demand. The same idempotent `FOR UPDATE SKIP LOCKED` function powers both, while booking creation and availability reads lazily expire due holds.
@@ -104,7 +107,11 @@ Set `BOOKING_ALLOW_PAST_DATES=true` only when a deployment explicitly allows pas
 - Login, logout, failed login, content CRUD, moderation, media uploads, organization changes, rental catalog changes, and payment confirmation create audit records with actor and role where applicable.
 - Admin login is at `http://localhost:3001/login`. After sign-in, the server-provided role selects `/news`, `/manager`, or `/brt`; no role is accepted from the browser. The Next.js admin app proxies `/api/*` to `API_BASE_URL`.
 
-Never put `SUPABASE_SERVICE_ROLE_KEY` in a `NEXT_PUBLIC_*` variable. Supabase Storage's `news`, `services`, `items`, and `organization` buckets are provisioned by `supabase/seed.sql`; uploads require `SUPABASE_URL` and the server-only service role key. File metadata and article image ordering are stored in PostgreSQL.
+Never put `SUPABASE_SERVICE_ROLE_KEY` in a `NEXT_PUBLIC_*` variable. Supabase Storage's `news`, `services`, `items`, and `organization` buckets are provisioned by `supabase/seed.sql`. Supabase uploads use `SUPABASE_URL` and the server-only service role key; local development can continue without those credentials using `.uploads/`. File metadata and article image ordering are stored in PostgreSQL.
+
+## Public website
+
+The public site provides Home, About, Rentals, separate Dance and BRT catalogs, paginated/filterable News, and article detail with approved comments. Guests choose rental dates in a backend-fed calendar, provide contact details without creating an account, review an estimate, and submit to the authoritative booking API. The confirmation shows the persisted booking code, server-calculated amount and deadline, plus a WhatsApp payment/question link. No public login, registration, customer dashboard, booking-status page, or admin-login link is exposed.
 
 ## Environment variables
 

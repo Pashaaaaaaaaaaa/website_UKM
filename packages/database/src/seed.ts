@@ -22,11 +22,12 @@ try {
   await client.query(`INSERT INTO article_categories(name,slug) VALUES ('Berita','berita'),('Kegiatan','kegiatan') ON CONFLICT(slug) DO NOTHING`);
   const admin = await client.query<{ id: string }>("SELECT id FROM admin_users WHERE email='news-admin@development.invalid'");
   const articles = [
-    ['Selamat Datang', 'selamat-datang', 'Berita pengembangan organisasi dan layanannya.'],
-    ['Kegiatan Seni Budaya', 'kegiatan-seni-budaya', 'Informasi kegiatan seni budaya komunitas.'],
+    ['Selamat Datang', 'selamat-datang', 'Berita pengembangan organisasi dan layanannya.', 'berita'],
+    ['Kegiatan Seni Budaya', 'kegiatan-seni-budaya', 'Informasi kegiatan seni budaya komunitas.', 'kegiatan'],
   ];
-  for (const [title, slug, body] of articles) await client.query(`INSERT INTO articles(title,slug,body,content,author_id,status,published_at)
-    VALUES($1,$2,$3,$3,$4,'PUBLISHED',now()) ON CONFLICT(slug) DO NOTHING`, [title, slug, body, admin.rows[0]!.id]);
+  for (const [title, slug, body, categorySlug] of articles) await client.query(`INSERT INTO articles(title,slug,body,content,category_id,author_id,status,published_at)
+    SELECT $1,$2,$3,$3,c.id,$4,'PUBLISHED',now() FROM article_categories c WHERE c.slug=$5
+    ON CONFLICT(slug) DO UPDATE SET category_id=COALESCE(articles.category_id,EXCLUDED.category_id)`, [title, slug, body, admin.rows[0]!.id, categorySlug]);
   await client.query(`INSERT INTO organization_info(singleton_key,name,history)
     VALUES(true,'Organisasi UKM','Data contoh pengembangan; ganti dengan sejarah organisasi yang telah diverifikasi.') ON CONFLICT(singleton_key) DO NOTHING`);
   await client.query(`INSERT INTO organization_members(name,position,sort_order)
@@ -34,6 +35,16 @@ try {
       ('Anggota Contoh Satu','Ketua',1),('Anggota Contoh Dua','Sekretaris',2)
     ) AS v(name,position,sort_order)
     WHERE NOT EXISTS (SELECT 1 FROM organization_members m WHERE m.name=v.name AND m.position=v.position)`);
+  await client.query(`INSERT INTO organization_units(name,unit_type,sort_order)
+    SELECT 'Bidang Seni Budaya','BIDANG',1 WHERE NOT EXISTS(SELECT 1 FROM organization_units WHERE unit_type='BIDANG' AND lower(name)=lower('Bidang Seni Budaya'))`);
+  await client.query(`INSERT INTO organization_units(name,unit_type,parent_id,sort_order)
+    SELECT 'Divisi Tari','DIVISI',u.id,1 FROM organization_units u WHERE u.unit_type='BIDANG' AND lower(u.name)=lower('Bidang Seni Budaya')
+    AND NOT EXISTS(SELECT 1 FROM organization_units d WHERE d.unit_type='DIVISI' AND d.parent_id=u.id AND lower(d.name)=lower('Divisi Tari'))`);
+  await client.query(`UPDATE organization_members SET is_chairman=true,position='Ketua'
+    WHERE id=(SELECT id FROM organization_members WHERE name='Anggota Contoh Satu' ORDER BY created_at LIMIT 1)
+    AND NOT EXISTS(SELECT 1 FROM organization_members WHERE is_chairman AND is_active)`);
+  await client.query(`UPDATE organization_members SET organization_unit_id=(SELECT id FROM organization_units WHERE unit_type='DIVISI' AND lower(name)=lower('Divisi Tari') LIMIT 1),position='Anggota Divisi Tari'
+    WHERE name='Anggota Contoh Dua' AND organization_unit_id IS NULL`);
   const dance = [
     ['Tari Tradisional A','tari-tradisional-a',1500000],['Tari Tradisional B','tari-tradisional-b',2000000],['Pentas Kolaborasi','pentas-kolaborasi',3500000],
   ];

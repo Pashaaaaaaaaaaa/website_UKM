@@ -19,6 +19,10 @@ describe('PostgreSQL integration', { skip: !configured }, () => {
     assert.equal(cmsMigration.rowCount, 1);
     const articleMediaMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='005_article_media.sql'");
     assert.equal(articleMediaMigration.rowCount, 1);
+    const organizationMigration = await getPool().query("SELECT name FROM schema_migrations WHERE name='008_organization_hierarchy.sql'");
+    assert.equal(organizationMigration.rowCount, 1);
+    const organizationUnits = await getPool().query("SELECT table_name FROM information_schema.tables WHERE table_schema=current_schema() AND table_name='organization_units'");
+    assert.equal(organizationUnits.rowCount, 1);
     const authTables = await getPool().query(`SELECT table_name FROM information_schema.tables
       WHERE table_schema=current_schema() AND table_name='admin_sessions'`);
     assert.equal(authTables.rowCount, 1);

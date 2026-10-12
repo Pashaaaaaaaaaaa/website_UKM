@@ -9,6 +9,14 @@ export const AdminRoleSchema = z.enum(['NEWS_ADMIN', 'MANAGER', 'BRT_ADMIN']);
 export type AdminRole = z.infer<typeof AdminRoleSchema>;
 const LoginSchema = z.object({ email: z.string().trim().email().max(254).transform(value => value.toLowerCase()), password: z.string().min(1).max(128) }).strict();
 const COOKIE = 'ukm_admin_session';
+const TAB_ID_HEADER = 'x-admin-tab-id';
+const tabCookieName = (tabId: string | undefined) => tabId && /^[a-f0-9]{32}$/i.test(tabId) ? `${COOKIE}_${tabId}` : COOKIE;
+const requestCookie = (req: Request, name: string) => req.headers.cookie?.split(';').map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1);
+const requestToken = (req: Request) => {
+  const authorization = req.get('authorization');
+  if (authorization?.startsWith('Bearer ')) return authorization.slice(7).trim();
+  return requestCookie(req, tabCookieName(req.get(TAB_ID_HEADER)));
+};
 const SESSION_MS = 8 * 60 * 60 * 1000;
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(randomBytes(32).toString('hex'), 12);
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -53,7 +61,7 @@ declare global { namespace Express { interface Request { admin?: AdminPrincipal 
 
 export function createAdminAuthMiddleware(pool: pg.Pool) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers.cookie?.split(';').map(value => value.trim()).find(value => value.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
+    const token = requestToken(req);
     if (!token) return json(res, 401, { error: { code: 'UNAUTHENTICATED', message: 'Sign in is required.' } });
     try {
       const found = await pool.query<{ id: string; name: string; email: string; role: string; expires_at: Date }>(
@@ -75,7 +83,6 @@ export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}):
   const ip = (req: Request) => req.ip ?? req.socket.remoteAddress ?? 'unknown';
   const authenticate = createAdminAuthMiddleware(pool);
   const cookieOptions = `Path=/api/admin; HttpOnly; SameSite=Strict; Max-Age=${Math.floor(SESSION_MS / 1000)}${secure ? '; Secure' : ''}`;
-  const clearCookie = `Path=/api/admin; HttpOnly; SameSite=Strict; Max-Age=0${secure ? '; Secure' : ''}`;
 
   router.post('/auth/login', async (req, res) => {
     const key = ip(req);
@@ -100,18 +107,21 @@ export function createAdminAuthRouter(pool: pg.Pool, options: AuthOptions = {}):
       limiter.clear(key);
       const principal: AdminPrincipal = { id: user.id, name: user.name, email: user.email, role: AdminRoleSchema.parse(user.role) };
       const token = randomBytes(32).toString('base64url');
+      const cookieName = tabCookieName(req.get(TAB_ID_HEADER));
       const expiresAt = new Date((options.now?.() ?? Date.now()) + SESSION_MS);
       await pool.query('INSERT INTO admin_sessions(admin_user_id,token_hash,expires_at,ip_address,user_agent) VALUES($1,$2,$3,$4,$5)',
         [principal.id, hashToken(token), expiresAt, key, req.get('user-agent') ?? '']);
       await pool.query('INSERT INTO audit_logs(actor_id,actor_role,action,entity_type,entity_id,ip_address) VALUES($1,$2,$3,$4,$5,$6)',
         [principal.id, principal.role, 'LOGIN', 'admin_user', principal.id, key]);
-      res.setHeader('Set-Cookie', `${COOKIE}=${token}; ${cookieOptions}`);
-      return res.json({ data: { user: principal, expiresAt: expiresAt.toISOString() } });
+      res.setHeader('Set-Cookie', `${cookieName}=${token}; ${cookieOptions}`);
+      return res.json({ data: { user: principal, token, expiresAt: expiresAt.toISOString() } });
     } catch { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: 'Unable to sign in.' } }); }
   });
 
   router.post('/auth/logout', authenticate, async (req, res) => {
-    const token = req.headers.cookie!.split(';').map(value => value.trim()).find(value => value.startsWith(`${COOKIE}=`))!.slice(COOKIE.length + 1);
+    const cookieName = tabCookieName(req.get(TAB_ID_HEADER));
+    const token = requestToken(req)!;
+    const clearCookie = `${cookieName}=; Path=/api/admin; HttpOnly; SameSite=Strict; Max-Age=0${secure ? '; Secure' : ''}`;
     try {
       await pool.query('DELETE FROM admin_sessions WHERE token_hash=$1', [hashToken(token)]);
       await pool.query('INSERT INTO audit_logs(actor_id,actor_role,action,entity_type,entity_id,ip_address) VALUES($1,$2,$3,$4,$5,$6)',

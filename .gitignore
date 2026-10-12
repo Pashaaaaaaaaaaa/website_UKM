@@ -7,3 +7,6 @@ coverage/
 .env.*
 !.env.example
 *.log
+
+# Local development uploads
+.uploads/

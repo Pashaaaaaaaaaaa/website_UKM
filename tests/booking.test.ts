@@ -197,10 +197,13 @@ describe('PostgreSQL booking engine integration', { skip: !configured }, () => {
 
   it('lists and views only bookings in the signed-in admin domain and applies date filters', async () => {
     const range=nextDates(2); const booking=await createBooking(pool(),input('DANCE',danceId,range),{allowPastDates:true});
-    const response=await callApi(managerId,'MANAGER',`/api/admin/bookings?start_date=${range.start_date}`);
+    const response=await callApi(managerId,'MANAGER',`/api/admin/bookings?status=PENDING_PAYMENT&start_date=${range.start_date}&end_date=${range.end_date}`);
     assert.equal(response.status,200);
     const payload=await response.json() as {data:Array<{booking_code:string;domain:string}>};
     assert.ok(payload.data.some(entry=>entry.booking_code===booking.booking_code && entry.domain==='DANCE'));
+    assert.equal((await callApi(managerId,'MANAGER',`/api/admin/bookings/${booking.booking_code}/confirm-payment`,'POST',{})).status,200);
+    const queue=await callApi(managerId,'MANAGER','/api/admin/bookings?status=PENDING_PAYMENT');const pending=await queue.json() as {data:Array<{booking_code:string}>};assert.ok(!pending.data.some(entry=>entry.booking_code===booking.booking_code));
+    const history=await callApi(managerId,'MANAGER',`/api/admin/bookings?start_date=${range.start_date}&end_date=${range.start_date}`);const past=await history.json() as {data:Array<{booking_code:string;status:string}>};assert.ok(past.data.some(entry=>entry.booking_code===booking.booking_code&&entry.status==='CONFIRMED'));
     const detail=await callApi(managerId,'MANAGER',`/api/admin/bookings/${booking.booking_code}`);
     assert.equal(detail.status,200);
     const hidden=await callApi(brtAdminId,'BRT_ADMIN',`/api/admin/bookings/${booking.booking_code}`);
@@ -277,8 +280,11 @@ describe('PostgreSQL booking engine integration', { skip: !configured }, () => {
     const body={...input('BRT',itemId,range,1)};
     const created=await callApi('',null,'/api/public/bookings','POST',body);
     assert.equal(created.status,201);
-    const payload=await created.json() as {data:{booking_code:string;status:string}};
-    assert.match(payload.data.booking_code,/^BK-/); assert.equal(payload.data.status,'PENDING_PAYMENT');
+    const payload=await created.json() as {data:{booking_code:string;customer_name:string;status:string;payment_status:string;expires_at:string;total_amount:number;rental_days:number;items:Array<{name:string;unit_price_snapshot:number;quantity:number;subtotal:number}>}};
+    assert.match(payload.data.booking_code,/^BK-/); assert.equal(payload.data.customer_name,'Guest Customer'); assert.equal(payload.data.status,'PENDING_PAYMENT');assert.equal(payload.data.payment_status,'UNPAID');assert.ok(Date.parse(payload.data.expires_at)>Date.now());assert.equal(payload.data.rental_days,1);assert.ok(payload.data.total_amount>0);assert.equal(payload.data.items[0]!.name,'Concurrent stock');assert.equal(payload.data.items[0]!.quantity,1);assert.ok(payload.data.items[0]!.unit_price_snapshot>0);assert.equal(payload.data.items[0]!.subtotal,payload.data.total_amount);
     assert.equal('id' in payload.data,false);
+    const reserved=await callApi('',null,`/api/public/availability/items/${itemId}?start_date=${range.start_date}&end_date=${range.end_date}`);const reservedData=await reserved.json() as {data:{dates:Array<{reserved_quantity:number;available_quantity:number}>}};assert.equal(reservedData.data.dates[0]!.reserved_quantity,1);assert.equal(reservedData.data.dates[0]!.available_quantity,9);
+    assert.equal((await callApi('',null,'/api/public/bookings','POST',{...body,items:[{item_id:itemId,quantity:11}]})).status,409);
+    assert.equal((await callApi('',null,'/api/public/bookings','POST',{...body,end_date:'2000-01-01'})).status,400);
   });
 });

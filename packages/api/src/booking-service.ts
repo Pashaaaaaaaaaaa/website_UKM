@@ -17,7 +17,7 @@ export interface BookingServiceOptions {
   maxRentalDays?: number;
 }
 export interface BookingPrincipal { id: string; role: AdminRole; ip?: string }
-interface ResourceRow extends QueryResultRow { id: string; is_active: boolean; price: string; total_quantity?: number }
+interface ResourceRow extends QueryResultRow { id: string; name: string; is_active: boolean; price: string; total_quantity?: number }
 interface ActiveCountRow extends QueryResultRow { date: string; reserved_quantity: number | string }
 
 function dayIso(now: Date): string { return now.toISOString().slice(0, 10); }
@@ -94,8 +94,8 @@ async function getLockedResources(client: PoolClient, input: CreateBookingInput)
   const resources = new Map<string, ResourceRow>();
   for (const id of ids) {
     const result = input.domain === 'DANCE'
-      ? await client.query<ResourceRow>('SELECT id,is_active,price_per_performance::text AS price FROM dance_services WHERE id=$1 FOR UPDATE', [id])
-      : await client.query<ResourceRow>('SELECT id,is_active,price_per_unit_per_day::text AS price,total_quantity FROM inventory_items WHERE id=$1 FOR UPDATE', [id]);
+      ? await client.query<ResourceRow>('SELECT id,name,is_active,price_per_performance::text AS price FROM dance_services WHERE id=$1 FOR UPDATE', [id])
+      : await client.query<ResourceRow>('SELECT id,name,is_active,price_per_unit_per_day::text AS price,total_quantity FROM inventory_items WHERE id=$1 FOR UPDATE', [id]);
     const resource = result.rows[0];
     if (!resource) throw new BookingError(404, 'RESOURCE_NOT_FOUND', 'A requested rental resource was not found.');
     if (!resource.is_active) throw new BookingError(409, 'RESOURCE_UNAVAILABLE', 'A requested rental resource is not available.');
@@ -130,6 +130,7 @@ async function assertResourcesAvailable(client: PoolClient, input: CreateBooking
 
 export interface CreatedBooking {
   booking_code: string;
+  customer_name: string;
   domain: RentalDomain;
   status: 'PENDING_PAYMENT';
   payment_status: 'UNPAID';
@@ -138,6 +139,7 @@ export interface CreatedBooking {
   rental_days: number;
   total_amount: number;
   expires_at: string;
+  items: Array<{ resource_id: string; name: string; quantity: number; unit_price_snapshot: number; subtotal: number }>;
 }
 
 export async function createBooking(pool: pg.Pool, input: CreateBookingInput, options: BookingServiceOptions = {}): Promise<CreatedBooking> {
@@ -156,20 +158,22 @@ export async function createBooking(pool: pg.Pool, input: CreateBookingInput, op
     [code,input.customer_name,input.customer_phone,input.customer_email ?? null,input.domain,input.start_date,input.end_date,input.notes ?? null]);
     const bookingId = created.rows[0]!.id;
     let totalCents = 0n;
+    const createdItems: CreatedBooking['items'] = [];
     for (const line of input.items) {
       const id = input.domain === 'DANCE' ? line.service_id! : line.item_id!;
       const unitCents = priceToCents(resources.get(id)!.price);
       const subtotalCents = unitCents * BigInt(line.quantity) * BigInt(days);
       totalCents += subtotalCents;
+      createdItems.push({ resource_id: id, name: resources.get(id)!.name, quantity: line.quantity, unit_price_snapshot: Number(unitCents) / 100, subtotal: Number(subtotalCents) / 100 });
       await client.query(`INSERT INTO booking_items(booking_id,service_id,item_id,quantity,unit_price_snapshot,rental_days,subtotal)
         VALUES($1,$2,$3,$4,$5,$6,$7)`, [bookingId,input.domain === 'DANCE' ? id : null,input.domain === 'BRT' ? id : null,
         line.quantity,centsToSql(unitCents),days,centsToSql(subtotalCents)]);
     }
     await client.query('UPDATE bookings SET total_amount=$2,updated_at=clock_timestamp() WHERE id=$1',[bookingId,centsToSql(totalCents)]);
     return {
-      booking_code: code, domain: input.domain, status: 'PENDING_PAYMENT', payment_status: 'UNPAID',
+      booking_code: code, customer_name: input.customer_name, domain: input.domain, status: 'PENDING_PAYMENT', payment_status: 'UNPAID',
       start_date: input.start_date, end_date: input.end_date, rental_days: days,
-      total_amount: Number(totalCents) / 100, expires_at: created.rows[0]!.expires_at.toISOString(),
+      total_amount: Number(totalCents) / 100, expires_at: created.rows[0]!.expires_at.toISOString(), items: createdItems,
     };
   });
 }
