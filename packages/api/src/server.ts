@@ -47,7 +47,7 @@ export function createApp(pool: pg.Pool = getPool(), authOptions: AuthOptions = 
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const port = Number(process.env.API_PORT ?? 4000);
+  const port = Number(process.env.PORT ?? process.env.API_PORT ?? 4000);
   void getPool().query('SELECT 1').catch(error => console.error('Database connection check failed:', error));
   startBookingExpiryWorker(getPool());
   createApp().listen(port, () => console.log(`UKM API listening on :${port}`));

@@ -7,5 +7,6 @@ export default [
   { ignores: ['**/node_modules/**', '**/dist/**', '**/.next/**', '**/.next-dev/**', '**/coverage/**', '**/next-env.d.ts'] },
   js.configs.recommended,
   { files: ['**/*.js', '**/*.ts'], languageOptions: { globals: { ...globals.node, ...globals.es2022 } } },
+  { files: ['**/*.mjs'], languageOptions: { globals: { ...globals.node, ...globals.es2022 } } },
   { files: ['**/*.ts', '**/*.tsx'], languageOptions: { parser: tsParser, parserOptions: { ecmaVersion: 'latest', sourceType: 'module', ecmaFeatures: { jsx: true } } }, plugins: { '@typescript-eslint': tsPlugin }, rules: { ...tsPlugin.configs.recommended.rules, 'no-undef': 'off' } },
 ];
