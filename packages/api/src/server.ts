@@ -11,8 +11,10 @@ import { createAdminBookingRouter, createPublicBookingRouter } from './booking-r
 import { startBookingExpiryWorker } from './booking-service.ts';
 import { createManagementRouter, createPublicContentRouter } from './management-routes.ts';
 import { createPublicCatalogRouter } from './public-catalog-routes.ts';
+import { createAdminHomepageMediaRouter, createPublicHomepageMediaRouter } from './homepage-media-routes.ts';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../../.env') });
+if (process.env.SUPABASE_URL) process.env.SUPABASE_URL = process.env.SUPABASE_URL.replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
 
 export function createApp(pool: pg.Pool = getPool(), authOptions: AuthOptions = {}) {
   const app = express();
@@ -30,7 +32,9 @@ export function createApp(pool: pg.Pool = getPool(), authOptions: AuthOptions = 
   app.use('/api/admin', createAdminAuthRouter(pool, authOptions));
   app.use('/api/admin', createAdminBookingRouter(pool));
   app.use('/api/admin', createManagementRouter(pool));
+  app.use('/api/admin', createAdminHomepageMediaRouter(pool));
   app.use('/api/public', createPublicContentRouter(pool));
+  app.use('/api/public', createPublicHomepageMediaRouter(pool));
   app.use('/api/public', createPublicCatalogRouter(pool));
   app.use('/api/public', createPublicBookingRouter(pool));
 

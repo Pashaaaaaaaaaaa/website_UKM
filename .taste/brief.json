@@ -1,0 +1,46 @@
+{
+  "originalRequest": "lanjutin, kalau ada yg perlu kamu ubah karena bertabrakan dengan desain yg akan diimplementasikan maka ubah saja",
+  "subject": "Situs publik UKM Seni dan Budaya yang sudah ada, dengan informasi organisasi, berita, layanan tari, dan inventaris BRT.",
+  "pageType": "Redesain beranda situs organisasi yang sudah ada.",
+  "scope": "Lanjutkan redesain beranda serta akses ke halaman dan fitur yang sudah tersedia. Pertahankan slot media untuk diisi melalui dashboard admin. Fokus pada beranda agar tidak menambah bagian yang tidak perlu.",
+  "primaryGoal": "Membantu pengunjung memahami UKM dan menemukan layanan sewa serta informasi penting dengan mudah.",
+  "audience": "Pengunjung umum, calon penyewa pertunjukan tari atau perlengkapan acara, pembaca berita organisasi, dan orang yang ingin menghubungi pengelola.",
+  "offer": "Informasi organisasi dan berita UKM, pertunjukan tari, serta persewaan alat musik dan perlengkapan acara berdasarkan data katalog yang tersedia.",
+  "primaryAction": "Jelajahi layanan sewa, lihat detail dan ketersediaan, lalu mulai pemesanan.",
+  "creativeControl": "Lanjutkan arah desain minimalis dengan aksen merah, pertahankan identitas dan fitur situs serta slot media admin. Gunakan referensi terpilih untuk komposisi, skala judul, hierarki, dan perlakuan media, tanpa menyalin isi atau identitas merek lain. Bila ada konflik implementasi, sesuaikan detail visual sambil menjaga tujuan dan batasan utama.",
+  "requiredContent": [
+    "Navigasi utama dengan identitas UKM serta tautan ke Tentang Kami, Layanan Sewa, dan Berita.",
+    "Hero yang mengenalkan UKM Seni dan Budaya serta mengarahkan pengunjung ke layanan atau profil organisasi.",
+    "Profil organisasi dengan informasi, cerita, dan struktur yang tersedia.",
+    "Pilihan layanan yang membedakan pertunjukan tari dari inventaris BRT.",
+    "Katalog layanan tari dengan nama, ringkasan, tarif, dan akses pemeriksaan jadwal dari data proyek.",
+    "Katalog BRT dengan nama barang, kategori, jumlah unit, tarif, dan akses jadwal dari data proyek.",
+    "Berita terbaru dengan kategori, tanggal, ringkasan, dan tautan ke artikel serta daftar berita yang tersedia.",
+    "Kontak pengelola untuk pertanyaan layanan, jadwal, dan pembayaran berdasarkan informasi proyek.",
+    "Footer dengan identitas, navigasi, kontak, dan kanal sosial yang tersedia."
+  ],
+  "constraints": [
+    "Pertahankan gaya minimalis dengan palet dominan merah yang tetap nyaman dibaca.",
+    "Pastikan akses fitur dan layanan jelas di desktop maupun seluler.",
+    "Batasi maksimal dua tombol atau tautan menuju halaman tujuan yang sama.",
+    "Gunakan data proyek untuk fakta organisasi, harga, ketersediaan, berita, dan kontak; jangan mengarang fakta atau bukti sosial.",
+    "Pertahankan aksesibilitas dasar dan fokus keyboard yang terlihat.",
+    "Pertahankan slot media untuk diisi melalui dashboard admin; gambar yang belum tersedia tidak menghalangi desain.",
+    "Sesuaikan detail visual yang bertabrakan dengan implementasi, dengan tetap mempertahankan identitas dan fungsi situs."
+  ],
+  "brandInputs": [
+    "Warna saat ini: hijau tua, hijau limau, aksen oranye, latar krem, dan kartu putih; sumber: apps/web/app/globals.css.",
+    "Tipografi saat ini: Inter dengan fallback system-ui dan sans-serif; sumber: apps/web/app/globals.css.",
+    "Identitas saat ini: wordmark teks UKM dengan monogram U; sumber: apps/web/components/site.tsx.",
+    "Halaman dan fitur yang ada mencakup beranda, profil, persewaan tari dan BRT, berita, detail artikel, kontak, katalog, dan pemesanan tamu; sumber: apps/web/app dan README.md."
+  ],
+  "assumptions": [
+    "Beranda tetap menjadi fokus dan hanya memuat bagian yang relevan untuk pengenalan organisasi, layanan sewa, berita, kontak, dan navigasi.",
+    "Palet terang netral dengan aksen merah digunakan untuk mempertahankan keterbacaan dan memenuhi arah warna yang diminta.",
+    "Slot media tetap kosong sampai admin mengunggah aset melalui dashboard; desain tidak mensyaratkan foto baru.",
+    "Gunakan animasi masuk dan saat menggulir yang terlihat, dengan dukungan reduced motion, karena tidak ada permintaan untuk menghilangkan animasi.",
+    "Referensi visual terpilih mengarahkan komposisi dan hirarki, bukan identitas merek atau konten UKM."
+  ],
+  "unresolved": [],
+  "explicitAnswers": []
+}

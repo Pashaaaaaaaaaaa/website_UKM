@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "inter-font",
+      "kind": "font",
+      "status": "needed",
+      "purpose": "Tipografia Inter aprobada por el sistema de marca para títulos, texto, navegación y controles.",
+      "requirements": [
+        "Adquirir los archivos locales reales de Inter para los pesos 400, 500, 600 y 700, junto con su licencia SIL Open Font License.",
+        "Verificar los archivos y guardar la fuente y la licencia en el proyecto. La descarga desde Google Fonts no estuvo disponible en esta sesión."
+      ],
+      "role": "font",
+      "sectionIds": [
+        "hero",
+        "profil_ukm",
+        "struktur_organisasi",
+        "pilihan_layanan",
+        "katalog_tari",
+        "katalog_brt",
+        "berita_terbaru",
+        "kontak_pengelola",
+        "footer"
+      ],
+      "source": {
+        "kind": "external",
+        "reference": "https://github.com/google/fonts/tree/main/ofl/inter",
+        "license": "Fuente oficial de Google Fonts; la licencia debe conservarse con los archivos adquiridos."
+      }
+    }
+  ]
+}

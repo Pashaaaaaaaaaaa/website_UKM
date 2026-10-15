@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "foundation": {
+    "strategy": "extend",
+    "existingAssets": [
+      "apps/web/app/globals.css: Inter, existing color tokens, 20px radius, 1160px content width, light color scheme",
+      "apps/web/components/site.tsx: UKM text wordmark and U monogram"
+    ],
+    "assetActions": [
+      {
+        "asset": "UKM wordmark and U monogram in apps/web/components/site.tsx",
+        "action": "protect",
+        "reason": "Existing organizational identity to retain."
+      },
+      {
+        "asset": "Inter in apps/web/app/globals.css",
+        "action": "preserve",
+        "reason": "Verified typeface already used by the site."
+      },
+      {
+        "asset": "Green, lime, orange, cream, and white palette in apps/web/app/globals.css",
+        "action": "evolve",
+        "reason": "Retain the light neutral foundation while adapting the accent to the requested red direction."
+      },
+      {
+        "asset": "Admin-managed media slots",
+        "action": "preserve",
+        "reason": "The brief reserves these slots for later dashboard uploads."
+      }
+    ],
+    "lockedDecisions": [
+      "Keep the existing UKM wordmark and U monogram.",
+      "Use a minimal design with a dominant red accent and light neutral surfaces.",
+      "Keep Inter as the typeface.",
+      "Keep media slots available for admin uploads.",
+      "Keep keyboard focus visible and limit each destination to no more than two links or buttons."
+    ],
+    "assumptions": [
+      "Use a light theme only; the brief does not require dark mode.",
+      "References guide layout, hierarchy, and media composition, not UKM identity or content."
+    ]
+  },
+  "creativeDirection": {
+    "summary": "A welcoming cultural organization site with clear service information, strong editorial scale, and restrained red accents. Keep the existing identity recognizable.",
+    "traits": [
+      {
+        "quality": "Open and organized",
+        "boundary": "not sparse enough to obscure useful details"
+      },
+      {
+        "quality": "Warm and cultural",
+        "boundary": "not decorated with generic cultural motifs"
+      },
+      {
+        "quality": "Expressive and readable",
+        "boundary": "not a dense administrative interface"
+      }
+    ],
+    "productiveTension": "Large editorial headings and prominent media composition paired with scannable catalog details and predictable controls.",
+    "signatureDevice": {
+      "description": "Small square markers beside section labels, adapted from the square markers in the Sidrano process reference.",
+      "status": "candidate",
+      "invariants": [
+        "Keep the square simple and consistently sized.",
+        "Use red for the marker and primary actions.",
+        "Do not replace the U monogram or repeat the marker as decoration on every card."
+      ]
+    },
+    "restraint": "Let spacing, type, and admin-managed media define the page. Use cards only for coherent service, catalog, or news items.",
+    "avoid": [
+      "Replacing the wordmark or monogram.",
+      "Copying reference logos, names, or distinctive palettes.",
+      "Inventing organization facts, pricing, availability, testimonials, or outcomes.",
+      "Adding decorative icons, repeated grid lines, or ornamental diagrams without a clear purpose."
+    ]
+  },
+  "colorPalette": [
+    {
+      "name": "Light Canvas",
+      "value": "#F8F7F3",
+      "usage": "Dominant. canvas token in the light theme."
+    },
+    {
+      "name": "Light Surface",
+      "value": "#FEFDF9",
+      "usage": "Dominant. surface token in the light theme."
+    },
+    {
+      "name": "Light Surface alt",
+      "value": "#DFDEDA",
+      "usage": "Supporting. surface alt token in the light theme."
+    },
+    {
+      "name": "Light Text",
+      "value": "#12120F",
+      "usage": "Semantic. text token in the light theme."
+    },
+    {
+      "name": "Light Text muted",
+      "value": "#4E4D4A",
+      "usage": "Semantic. text muted token in the light theme."
+    },
+    {
+      "name": "Light Divider",
+      "value": "#C5C4C0",
+      "usage": "Semantic. divider token in the light theme."
+    },
+    {
+      "name": "Light Control border",
+      "value": "#6A6965",
+      "usage": "Semantic. control border token in the light theme."
+    },
+    {
+      "name": "Light Accent",
+      "value": "#B8322A",
+      "usage": "Sparse accent. accent token in the light theme."
+    },
+    {
+      "name": "Light Accent hover",
+      "value": "#A01513",
+      "usage": "Semantic. accent hover token in the light theme."
+    },
+    {
+      "name": "Light On accent",
+      "value": "#FFFFFF",
+      "usage": "Semantic. on accent token in the light theme."
+    },
+    {
+      "name": "Light Accent text",
+      "value": "#810005",
+      "usage": "Sparse accent. accent text token in the light theme."
+    },
+    {
+      "name": "Light Focus ring",
+      "value": "#A9221D",
+      "usage": "Semantic. focus ring token in the light theme."
+    }
+  ],
+  "typefaces": [
+    {
+      "family": "Inter",
+      "source": "Existing project typography in apps/web/app/globals.css",
+      "roles": [
+        "headings and body text",
+        "navigation, metadata, and controls"
+      ],
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ]
+    }
+  ],
+  "interfaceDirection": "Use an 8px spacing rhythm, the existing maximum content width of 1160px, and the existing 20px radius. Follow the references' generous section spacing and clear hierarchy while keeping service, catalog, and news details easy to scan. Use cream as the page canvas and white for coherent interactive or comparable units. Keep shadows subtle and avoid repeated borders. Use red for primary actions, keyboard focus, selected states, and one recurring service or media treatment. Keep controls familiar with clear hover, focus, active, and disabled states. Adapt large headings and media-led compositions to mobile without squeezing text or hiding details.",
+  "imageDirection": {
+    "summary": "Preserve the existing media slots and their geometry for later admin uploads. Follow the references' prominent framed media and responsive crops without requiring new imagery.",
+    "subjects": [
+      "Existing hero media slot",
+      "Existing dance service and BRT catalog media slots",
+      "Existing news thumbnail slots"
+    ],
+    "treatment": "Keep related media proportions and frames consistent. Preserve space when a slot is empty to prevent layout shifts when admins upload images. On mobile, use full-width media frames and readable content order.",
+    "avoid": [
+      "Treating empty admin slots as assets that must be sourced or generated.",
+      "Using reference screenshots as site imagery.",
+      "Using decorative SVGs or diagrams instead of meaningful photography or product images."
+    ]
+  },
+  "motionDirection": {
+    "summary": "Use visible motion to clarify hierarchy and continuity while keeping content readable if motion is unavailable or reduced.",
+    "principles": [
+      "Purpose: introduce the page; trigger: initial load; affected relationship: reveal the identity label, headline, supporting copy, and primary action in sequence; 450–650ms with 60–100ms item staggering; decisive ease-out.",
+      "Purpose: reveal the hero media; trigger: initial load after the headline begins; affected relationship: bring media into its existing frame with a small directional shift; 500–700ms; smooth ease-out.",
+      "Purpose: clarify service and news groups; trigger: each visual group approaching the viewport; affected relationship: reveal related items in a short sequence without moving the whole section; 450–650ms with total staggering capped at 240ms; soft ease-out.",
+      "Purpose: confirm direct control input; trigger: hover, focus, press, or selection; affected relationship: change control color, outline, or position slightly; 120–200ms; responsive easing.",
+      "Purpose: communicate disclosure state; trigger: disclosure activation; affected relationship: expand or collapse its panel with a matching indicator change; 160–220ms; balanced ease-in-out, with equivalent controls under reduced motion."
+    ],
+    "avoid": [
+      "transition: all",
+      "Scale-from-zero entrances",
+      "Information available only on hover",
+      "Scroll-jacking, perpetual motion, or repeated reveal animations",
+      "Hiding content when scripts fail or reduced motion is enabled"
+    ]
+  },
+  "voice": {
+    "summary": "Use direct, friendly Indonesian. Lead with service names, prices, quantities, schedules, and contact steps when verified project data provides them.",
+    "avoid": [
+      "Promotional claims or measured results without project evidence.",
+      "Unnecessary jargon, inflated language, and sentences that obscure actions.",
+      "Invented availability, prices, schedules, achievements, or testimonials."
+    ]
+  }
+}

@@ -47,7 +47,7 @@ export default async function AboutPage() {
         {organization?.organization?.phone && <p>Telepon: <a href={`tel:${organization.organization.phone}`}>{organization.organization.phone}</a></p>}
         {organization?.organization?.email && <p>Email: <a href={`mailto:${organization.organization.email}`}>{organization.organization.email}</a></p>}
       </section>
-      <section className="content-section">
+      <section className="content-section" id="struktur">
         <div className="section-heading"><div><span className="eyebrow">Orang-orang di balik karya</span><h2>Badan Pengurus</h2></div></div>
         {!chairman && fields.length === 0 && members.length === 0 ? <p>Badan Pengurus belum dipublikasikan.</p> : <div className="organization-chart">
           {chairman && <div className="organization-chair"><PersonCard person={chairman} label="Ketua" /></div>}

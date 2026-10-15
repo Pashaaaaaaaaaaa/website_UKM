@@ -1,0 +1,482 @@
+{
+  "version": 1,
+  "page": {
+    "title": "UKM Seni dan Budaya",
+    "route": "/",
+    "description": "Kenali UKM Seni dan Budaya, pilih layanan sewa tari atau BRT, dan lanjutkan ke detail serta jadwal."
+  },
+  "architecture": {
+    "contract": "Halaman ini membantu pengunjung umum dan calon penyewa memilih layanan tari atau perlengkapan BRT dan membuka detail sewa. Hasil bisnisnya adalah pengunjung memeriksa layanan dan memulai pemesanan. Konversi utama: membuka katalog sewa.",
+    "mode": "explore_experience",
+    "novelty": "medium",
+    "grid": "Grid 12 kolom dengan lebar konten maksimum 1160px, gutter 24px, dan ritme 8px. Gunakan Inter, palet dan kontrol dari sistem merek.",
+    "signatureRule": "Ikuti hero xodexdesign: identitas di tepi atas, pesan dan dua aksi terpusat, lalu pita bingkai media lebar melengkung di bawah. Bingkai tetap tersedia sebagai slot kosong untuk unggahan admin.",
+    "rhythm": "Hero pengantar, profil dan struktur organisasi, pilihan layanan, katalog tari dan BRT, berita terbaru, kontak pengelola, lalu footer. Jaga detail katalog dekat dengan layanan dan aksi jadwal."
+  },
+  "navigation": [
+    {
+      "label": "Tentang Kami",
+      "target": "/about"
+    },
+    {
+      "label": "Layanan Sewa",
+      "target": "/rentals"
+    },
+    {
+      "label": "Berita",
+      "target": "/news"
+    }
+  ],
+  "navigationDesign": {
+    "layoutCase": "reference-navigation",
+    "layout": "Wordmark UKM dan monogram U di kiri, tiga tautan sejajar di kanan. Ikuti posisi dan jarak navigasi pada referensi hero, tanpa tombol menu desktop tambahan.",
+    "behavior": [
+      "Pada layar kecil, tombol menu membuka panel berisi tiga tautan yang sama; gunakan aria-expanded dan aria-controls.",
+      "Escape menutup panel dan mengembalikan fokus ke tombol. Tautan memiliki indikator fokus yang jelas."
+    ],
+    "transformation": {
+      "compact": "Identitas tetap di kiri, tombol menu di kanan; panel menu memuat tiga tautan dalam urutan yang sama.",
+      "medium": "Tampilkan tautan sejajar bila ruang cukup; jika tidak, gunakan panel menu.",
+      "expanded": "Identitas kiri dan tiga tautan utama berjajar di kanan."
+    }
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "layoutFamily": "hero",
+      "layoutCases": [
+        "xodexdesign-01-hero"
+      ],
+      "referenceDirectionId": "xodexdesign-01-hero",
+      "purpose": "Memperkenalkan UKM dan mengarahkan pengunjung ke katalog sewa atau profil organisasi.",
+      "userQuestion": "Apa yang ditawarkan UKM Seni dan Budaya?",
+      "stage": "orient",
+      "dependencies": [],
+      "evidence": [
+        "Identitas UKM dan halaman serta fitur yang tersedia tercatat pada apps/web/components/site.tsx, apps/web/app, dan README.md."
+      ],
+      "copy": {
+        "eyebrow": "UKM Seni dan Budaya",
+        "heading": "Seni dan budaya, hadir untuk acara Anda",
+        "body": [
+          "Kenali kegiatan UKM, pertunjukan tari, dan perlengkapan acara yang tersedia untuk disewa."
+        ],
+        "callsToAction": [
+          {
+            "label": "Jelajahi layanan sewa",
+            "target": "/rentals"
+          },
+          {
+            "label": "Tentang UKM",
+            "target": "/about"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1505×1044: wordmark di x≈5%, y≈3%; label kecil di tengah sekitar y≈21%; kotak judul terpusat selebar kira-kira 40% bidang, satu baris bila muat; dukungan dua baris tepat di bawahnya; dua tombol berdampingan; pita media memakai empat bingkai di 42% bagian bawah, dua bingkai tengah dominan dan bingkai luar terpotong. Pertahankan lekuk tepi pita dan crop. Bingkai adalah slot media admin kosong tanpa pengganti dekoratif. Peta mobile dari 783×2048: identitas dan menu di atas, ruang kosong besar hingga label sekitar y≈24%; judul besar memenuhi lebar dengan dua baris, dukungan dua baris, tombol bertumpuk, lalu pita tiga bingkai dengan tengah dominan; sisakan ruang kosong setelah pita sesuai referensi. Gunakan tinggi bingkai dan crop konsisten ketika slot diisi.",
+      "motion": {
+        "purpose": "spatial_continuity",
+        "trigger": "load",
+        "behavior": "Pada load, tampilkan label, judul, dukungan dan dua tombol berurutan dengan jeda 70ms; opacity 0 ke 1 dan translateY 12px ke 0 selama 560ms. Pita media menyusul di dalam bingkainya selama 620ms. Jalankan sekali, tanpa menyembunyikan elemen yang sudah terlihat.",
+        "durationMs": 620,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Tampilkan seluruh isi langsung tanpa transisi."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Pertahankan urutan label, judul, dukungan, dua aksi, dan pita tiga bingkai; tombol bertumpuk dan bingkai tengah dominan.",
+        "medium": "Pesan terpusat, dua aksi sejajar bila muat, pita media tetap lebar di bawah.",
+        "expanded": "Pertahankan dua aksi sejajar dan pita empat bingkai dengan sisi terpotong serta lekuk referensi."
+      }
+    },
+    {
+      "id": "profil_ukm",
+      "layoutFamily": "about",
+      "layoutCases": [
+        "cipher-security-02-about"
+      ],
+      "referenceDirectionId": "cipher-security-02-about",
+      "purpose": "Menjelaskan peran UKM secara ringkas dan memberi akses ke profil lengkap.",
+      "userQuestion": "Apa itu UKM Seni dan Budaya?",
+      "stage": "explain",
+      "dependencies": [
+        "hero"
+      ],
+      "evidence": [
+        "Profil organisasi tersedia di halaman yang ada dalam apps/web/app."
+      ],
+      "copy": {
+        "heading": "Ruang berkegiatan seni dan budaya di kampus",
+        "body": [
+          "UKM Seni dan Budaya menjadi ruang bagi mahasiswa untuk berkegiatan dan mengenal seni serta budaya."
+        ],
+        "callsToAction": [
+          {
+            "label": "Baca profil organisasi",
+            "target": "/about"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1505×1044: bar navigasi tipis melintang di atas; judul besar rata kiri mengisi kira-kira 48% bidang pada kiri atas dengan tiga sampai empat baris; media utama mengisi kira-kira 38% kanan atas sebagai bingkai kosong admin; aksi tepat di bawah judul. Dua bidang informasi berdampingan mengisi lebar bawah sekitar sepertiga tinggi bagian, dengan konten rata kiri. Pertahankan garis tipis, grid halus yang ada pada referensi hanya sebagai struktur konten, bukan dekorasi tambahan. Peta mobile dari 808×2048: identitas dan menu di atas, judul rata kiri sekitar lima baris, bingkai media tinggi di sisi kanan/area setelah judul sesuai urutan baca, aksi dan bidang informasi ditumpuk. Slot media kosong tidak diisi ilustrasi pengganti.",
+      "motion": {
+        "purpose": "explanation",
+        "trigger": "scroll_enter",
+        "behavior": "Amati kelompok judul dan bingkai media secara terpisah dengan threshold 0 dan rootMargin bawah 120px. Saat masuk, ungkapkan masing-masing dengan opacity 0 ke 1 dan translateX 12px ke 0 selama 520ms; unobserve segera setelah mulai. Konten yang terlihat saat inisialisasi tetap tampak.",
+        "durationMs": 520,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Tampilkan semua teks dan bingkai langsung tanpa transisi."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Judul, bingkai media, ringkasan dan tautan dalam urutan baca; bidang informasi ditumpuk di bawah.",
+        "medium": "Judul dan media dua kolom; ringkasan, aksi dan bidang informasi mengikuti di bawah.",
+        "expanded": "Pertahankan judul dan aksi di kiri, media di kanan, serta dua bidang informasi berjajar di bagian bawah."
+      }
+    },
+    {
+      "id": "struktur_organisasi",
+      "layoutFamily": "about",
+      "layoutCases": [
+        "stodio-03-about"
+      ],
+      "referenceDirectionId": "stodio-03-about",
+      "purpose": "Menunjukkan susunan pengurus yang tersedia dan menghubungkannya ke profil organisasi.",
+      "userQuestion": "Bagaimana struktur organisasi UKM?",
+      "stage": "explain",
+      "dependencies": [
+        "profil_ukm"
+      ],
+      "evidence": [
+        "Informasi struktur organisasi tercatat pada profil proyek di apps/web/app."
+      ],
+      "copy": {
+        "heading": "Kenali struktur organisasi",
+        "body": [
+          "Lihat susunan pengurus dan informasi organisasi pada halaman profil UKM."
+        ],
+        "callsToAction": [
+          {
+            "label": "Lihat struktur organisasi",
+            "target": "/about#struktur"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1469×1071: label kecil kiri atas; judul rata kiri menempati sekitar 58% lebar pada bagian atas dengan tiga baris; tautan di kanan sejajar dengan judul. Pita foto potret mengisi kira-kira setengah bawah: satu bingkai tengah penuh dan bingkai tetangga terpotong di kedua sisi. Pertahankan gap sempit dan sudut bingkai referensi; semua bingkai tetap slot admin kosong. Peta mobile dari 936×2048: label di kiri atas, judul besar empat baris, tautan di bawah judul, kemudian pita bingkai potret mendatar dengan bagian tengah terlihat dan sisi terpotong.",
+      "motion": {
+        "purpose": "spatial_continuity",
+        "trigger": "scroll_enter",
+        "behavior": "Ungkapkan judul lalu pita bingkai media dengan jeda 80ms; opacity 0 ke 1 dan translateY 10px ke 0 selama 520ms. Jalankan sekali, amati kelompok satu per satu, dan unobserve segera setelah masuk.",
+        "durationMs": 520,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Teks dan bingkai langsung terlihat tanpa transisi."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Judul, tautan, lalu pita yang dapat digeser secara native; jangan sembunyikan bingkai atau tautan.",
+        "medium": "Judul kiri dan tautan kanan bila cukup ruang, pita potret tetap di bawah.",
+        "expanded": "Pertahankan judul lebar dan galeri potret dengan satu bingkai penuh di tengah serta sisi terpotong."
+      }
+    },
+    {
+      "id": "pilihan_layanan",
+      "layoutFamily": "feature",
+      "layoutCases": [
+        "ollef-06-services"
+      ],
+      "referenceDirectionId": "ollef-06-services",
+      "purpose": "Membantu pengunjung memilih antara layanan pertunjukan tari dan inventaris BRT.",
+      "userQuestion": "Jenis layanan sewa apa yang bisa saya pilih?",
+      "stage": "evaluate",
+      "dependencies": [
+        "hero"
+      ],
+      "evidence": [
+        "Persewaan tari dan BRT tercantum di README.md dan halaman apps/web/app."
+      ],
+      "copy": {
+        "heading": "Pilih kebutuhan acara Anda",
+        "body": [
+          "Pilih pertunjukan tari atau perlengkapan BRT untuk disewa."
+        ],
+        "callsToAction": [
+          {
+            "label": "Lihat layanan tari",
+            "target": "/rentals/tari"
+          },
+          {
+            "label": "Lihat inventaris BRT",
+            "target": "/rentals/brt"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1680×1045: label kecil di x≈3%, y≈14%; judul besar rata kiri mulai sekitar y≈27%, menempati kurang lebih 66% lebar dan empat baris. Satu bingkai media persegi kosong di kanan atas, lebarnya kira-kira 27%; ringkasan tepat di bawah bingkai. Dua pilihan layanan tersusun di ruang kiri sebagai dua tautan teks terpisah, bukan kartu seragam. Peta mobile dari 1131×1423: ruang atas relatif lapang; label, daftar judul layanan berurutan, dua tautan, lalu bingkai media lebar di bawah. Pertahankan jarak antarelemen dan crop tengah pada slot media.",
+      "motion": {
+        "purpose": "explanation",
+        "trigger": "scroll_enter",
+        "behavior": "Ungkapkan judul lalu dua tautan dalam urutan sumber dengan jeda 90ms, opacity 0 ke 1 dan translateY 10px ke 0 selama 500ms. Amati tiap kelompok visual secara mandiri, unobserve setelah masuk, dan batasi jeda total 180ms.",
+        "durationMs": 500,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Judul dan kedua pilihan langsung terlihat tanpa transisi."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Label, judul, kedua tautan, ringkasan dan bingkai media berurutan; semua pilihan tetap terlihat.",
+        "medium": "Judul dan tautan di kiri, bingkai persegi di kanan; ringkasan dekat dengan bingkai.",
+        "expanded": "Pertahankan susunan asimetris dan skala judul referensi dengan dua pilihan jelas di kiri."
+      }
+    },
+    {
+      "id": "katalog_tari",
+      "layoutFamily": "feature",
+      "layoutCases": [
+        "creatiie-03-projects"
+      ],
+      "referenceDirectionId": "creatiie-03-projects",
+      "purpose": "Menampilkan layanan tari dari data katalog beserta tarif dan akses pemeriksaan jadwal.",
+      "userQuestion": "Layanan tari apa yang tersedia dan bagaimana memeriksa jadwalnya?",
+      "stage": "evaluate",
+      "dependencies": [
+        "pilihan_layanan"
+      ],
+      "evidence": [
+        "Katalog tari dan pemeriksaan jadwal tersedia pada proyek; nama, ringkasan, dan tarif diambil dari data katalog."
+      ],
+      "copy": {
+        "heading": "Layanan tari",
+        "body": [
+          "Lihat pilihan pertunjukan dan tarif dari katalog, lalu buka detail untuk memeriksa jadwal."
+        ],
+        "callsToAction": [
+          {
+            "label": "Lihat semua layanan tari",
+            "target": "/rentals/tari"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1505×1044: panel unggulan berada di tengah dengan bingkai media lanskap lebar di bagian atas, nama layanan dan ringkasan tepat di bawah, lalu metadata tarif dan jadwal. Dua panel pendamping berada di kiri dan kanan, lebih kecil, sedikit berotasi dan tumpang tindih di belakang panel utama. Pertahankan media-to-copy adjacency dan jarak panel; bingkai tetap slot admin kosong. Peta mobile dari 783×2048: identitas halaman di atas, daftar layanan vertikal; tiap bingkai media lebar mendahului nama, tarif, ringkasan dan tautan detail. Jangan gunakan rotasi atau overlap pada daftar mobile agar teks dan tautan mudah dibaca.",
+      "motion": {
+        "purpose": "spatial_continuity",
+        "trigger": "scroll_enter",
+        "behavior": "Ungkapkan bingkai panel utama di dalam crop-nya dengan opacity 0 ke 1 dan translateY 12px ke 0 selama 600ms; item pendamping menyusul masing-masing 80ms, maksimal 160ms. Jalankan sekali dan unobserve saat mulai.",
+        "durationMs": 600,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Tampilkan seluruh panel dan detail secara langsung."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Daftar vertikal berisi media, nama, tarif dari katalog, ringkasan dan tautan detail serta jadwal.",
+        "medium": "Panel unggulan lebih lebar dengan panel pendamping lebih kecil di sisi atau di bawah.",
+        "expanded": "Pertahankan panel tengah dominan dan panel samping yang sedikit berotasi serta overlap."
+      }
+    },
+    {
+      "id": "katalog_brt",
+      "layoutFamily": "feature",
+      "layoutCases": [
+        "mello-coffee-03-featured"
+      ],
+      "referenceDirectionId": "mello-coffee-03-featured",
+      "purpose": "Menampilkan inventaris BRT beserta kategori, jumlah unit, tarif, dan akses jadwal.",
+      "userQuestion": "Barang BRT apa yang tersedia, berapa jumlahnya, dan bagaimana melihat tarifnya?",
+      "stage": "evaluate",
+      "dependencies": [
+        "pilihan_layanan"
+      ],
+      "evidence": [
+        "Katalog BRT merupakan fitur proyek; nama, kategori, jumlah, tarif, dan jadwal berasal dari data katalog."
+      ],
+      "copy": {
+        "heading": "Perlengkapan untuk kebutuhan acara",
+        "body": [
+          "Lihat kategori barang, jumlah unit, dan tarif pada katalog BRT. Buka detail barang untuk memeriksa jadwal."
+        ],
+        "callsToAction": [
+          {
+            "label": "Jelajahi katalog BRT",
+            "target": "/rentals/brt"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1402×1080: judul besar dua baris di kiri atas, catatan pendukung di kanan atas; kisi media asimetris mengisi area bawah. Satu panel utama besar di kiri, satu panel lebar bertingkat di kanan atas, lalu dua panel kecil berdampingan di kanan bawah. Setiap bingkai media kosong admin tetap dekat dengan nama barang, kategori, jumlah unit, tarif dan tautan jadwal. Referensi tidak memiliki pasangan mobile terverifikasi; pada layar sempit susun satu kolom dengan media lebih dulu lalu detail lengkap, tanpa menyembunyikan item.",
+      "motion": {
+        "purpose": "explanation",
+        "trigger": "scroll_enter",
+        "behavior": "Ungkapkan panel kisi satu demi satu dengan jeda 70ms, opacity 0 ke 1 dan translateY 10px ke 0 selama 520ms; jeda total maksimal 210ms. Amati tiap panel secara terpisah dan unobserve segera setelah masuk.",
+        "durationMs": 520,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Semua item dan detail tampil langsung tanpa transisi."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Susun item vertikal; setiap item menampilkan bingkai media, nama, kategori, jumlah, tarif dan akses jadwal.",
+        "medium": "Pertahankan satu panel utama lebih besar dan item lain dalam dua kolom.",
+        "expanded": "Pertahankan kisi asimetris dengan panel utama besar di kiri dan tiga panel di kanan."
+      }
+    },
+    {
+      "id": "berita_terbaru",
+      "layoutFamily": "feature",
+      "layoutCases": [
+        "saleunion-04-services"
+      ],
+      "referenceDirectionId": "saleunion-04-services",
+      "purpose": "Menampilkan berita terbaru dari data proyek dan memberi akses ke artikel serta daftar berita.",
+      "userQuestion": "Apa berita terbaru dari UKM?",
+      "stage": "continue",
+      "dependencies": [
+        "profil_ukm"
+      ],
+      "evidence": [
+        "Berita dan halaman detail artikel tersedia di apps/web/app; kategori, tanggal, ringkasan, serta tautan berasal dari data berita proyek."
+      ],
+      "copy": {
+        "heading": "Berita terbaru",
+        "body": [
+          "Baca kabar UKM berdasarkan kategori, tanggal, dan ringkasan tiap artikel."
+        ],
+        "callsToAction": [
+          {
+            "label": "Buka daftar berita",
+            "target": "/news"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1505×1044: label dan judul dua baris rata kiri di kiri atas; kontrol navigasi bundar di kanan atas; deretan bingkai media tinggi di bawah, dengan satu item utama dominan dan item samping terpotong. Tiap thumbnail berupa slot admin kosong; letakkan kategori, tanggal, ringkasan dan tautan artikel dekat dengan bingkainya. Peta mobile dari 850×2048: label dan judul di atas, satu bingkai artikel besar, lalu kategori, tanggal, ringkasan dan tautan; artikel berikutnya tetap dapat dijangkau dengan geser native. Jangan tampilkan gambar ilustratif yang tidak terkait sebagai foto berita.",
+      "motion": {
+        "purpose": "spatial_continuity",
+        "trigger": "scroll_enter",
+        "behavior": "Ungkapkan bingkai artikel utama dengan opacity 0 ke 1 dan translateY 12px ke 0 selama 560ms; artikel berikutnya menyusul tiap 80ms dengan jeda total maksimal 160ms. Jalankan sekali dan unobserve segera setelah masuk.",
+        "durationMs": 560,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Semua artikel dan tautan langsung terlihat tanpa transisi."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Artikel utama tampil penuh dengan kategori, tanggal, ringkasan dan tautan; artikel lain tetap dapat dijangkau.",
+        "medium": "Artikel utama lebih lebar dan satu atau lebih artikel berikut terlihat sebagian di sisi.",
+        "expanded": "Pertahankan deretan bingkai tinggi dengan artikel utama dominan, kontrol bundar di kanan atas, dan sisi terpotong."
+      }
+    },
+    {
+      "id": "kontak_pengelola",
+      "layoutFamily": "cta",
+      "layoutCases": [
+        "fabrica-15-contact"
+      ],
+      "referenceDirectionId": "fabrica-15-contact",
+      "purpose": "Mengarahkan calon penyewa ke kanal kontak pengelola yang tersedia.",
+      "userQuestion": "Bagaimana saya menghubungi pengelola tentang layanan sewa?",
+      "stage": "act",
+      "dependencies": [
+        "katalog_tari",
+        "katalog_brt"
+      ],
+      "evidence": [
+        "Kanal kontak pengelola tersedia dalam informasi proyek; tampilkan nilai yang tercantum pada data situs."
+      ],
+      "copy": {
+        "heading": "Hubungi pengelola",
+        "body": [
+          "Tanyakan layanan tari, jadwal sewa, atau pembayaran melalui kanal kontak yang tercantum."
+        ],
+        "callsToAction": [
+          {
+            "label": "Lihat kontak pengelola",
+            "target": "/contact"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1391×1080: panel putih berisi informasi kontak di kiri, mengambil sekitar 38% lebar dan 70% tinggi; judul besar di kanan, dukungan tepat di bawah, lalu dua rincian informasi dalam kolom setelah garis tipis. Area kanan bawah memuat panel kontak pengelola yang menggemakan proporsi kartu foto dan identitas pada referensi, memakai informasi kontak nyata dari proyek. Jangan membuat form atau profil orang yang tidak tersedia. Peta mobile dari 692×2048: panel kontak putih mendahului judul dan dukungan; rincian kontak serta kartu pengelola menyusul, dengan kanal kontak di urutan awal. Pertahankan kontras, urutan baca dan padding panel.",
+      "motion": {
+        "purpose": "feedback",
+        "trigger": "hover",
+        "behavior": "Tautan kontak dan tombol berubah ke warna hover aksen dalam 160ms; fokus keyboard memakai ring yang jelas. Informasi kontak selalu terlihat tanpa hover.",
+        "durationMs": 160,
+        "easing": "cubic-bezier(0.2, 0, 0, 1)",
+        "reducedMotion": "Pertahankan perubahan warna hover dan indikator fokus tanpa pergeseran."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Panel kontak, judul, rincian dan tautan disusun vertikal; kanal kontak utama tetap di awal.",
+        "medium": "Panel kontak di kiri, judul dan rincian kontak di kanan.",
+        "expanded": "Pertahankan panel terang kiri, judul dan dukungan kanan, dua rincian setelah pemisah, dan panel kontak di kanan bawah."
+      }
+    },
+    {
+      "id": "footer",
+      "layoutFamily": "footer",
+      "layoutCases": [
+        "creatiie-07-footer"
+      ],
+      "referenceDirectionId": "creatiie-07-footer",
+      "purpose": "Menyediakan identitas UKM, tautan lanjutan, kontak dan kanal sosial yang tercantum.",
+      "userQuestion": "Ke mana saya bisa melanjutkan atau mengikuti UKM?",
+      "stage": "continue",
+      "dependencies": [
+        "kontak_pengelola"
+      ],
+      "evidence": [
+        "Wordmark dan monogram tersedia di apps/web/components/site.tsx; kanal sosial hanya tersedia bila tercantum dalam data proyek."
+      ],
+      "copy": {
+        "heading": "UKM Seni dan Budaya",
+        "body": [
+          "Temukan profil, layanan sewa, berita, dan kontak pengelola."
+        ],
+        "callsToAction": [
+          {
+            "label": "Kontak pengelola",
+            "target": "/contact"
+          }
+        ]
+      },
+      "layout": "Peta desktop dari referensi 1505×1044: bingkai media lanskap memenuhi hampir seluruh lebar dan sekitar 86% tinggi bagian; tautan sosial berada di kiri atas dan hanya muncul jika datanya tersedia; headline besar rata kiri di bagian bawah bingkai; kontak berada di kanan bawah. Navigasi dan wordmark UKM berada tepat di bawah bingkai. Pertahankan slot media footer kosong tanpa pengganti ilustratif. Peta mobile dari 819×2048: bingkai lebar di atas, judul besar dan teks di bawah, tautan kontak penuh lebar, garis pemisah, navigasi, wordmark, lalu kanal sosial yang tersedia. Jangan menampilkan kanal yang tidak ada dalam data.",
+      "motion": {
+        "purpose": "none",
+        "trigger": "none",
+        "behavior": "Footer statis; tautan tetap memiliki umpan balik hover dan fokus yang jelas.",
+        "durationMs": 0,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reducedMotion": "Footer tetap statis; tautan dan indikator fokus tetap berfungsi."
+      },
+      "componentNeeds": [],
+      "assetNeeds": [],
+      "transformation": {
+        "compact": "Slot media lebar, judul dan kontak, navigasi, lalu identitas; sosial hanya bila tersedia.",
+        "medium": "Media lebar dengan judul di kiri dan kontak di kanan; navigasi dan identitas di bawah.",
+        "expanded": "Pertahankan bingkai lanskap dominan dengan teks di atas media dan navigasi di bawahnya."
+      }
+    }
+  ],
+  "responsive": [
+    "Gunakan geometri pasangan referensi desktop dan mobile yang tersedia; turunkan skala judul sesuai lebar tanpa mengubah urutan pesan.",
+    "Slot media admin tetap mempertahankan rasio dan ruang saat kosong agar halaman tidak bergeser ketika media diunggah.",
+    "Pada katalog BRT yang tidak memiliki referensi mobile terverifikasi, ubah kisi menjadi daftar vertikal dengan seluruh detail dan aksi tetap terlihat.",
+    "Pertahankan urutan sumber, akses keyboard, kedekatan detail katalog, dan prioritas aksi di semua ukuran."
+  ],
+  "interactions": [
+    "Menu mobile mengumumkan status buka-tutup; Escape menutup panel dan mengembalikan fokus ke tombol.",
+    "Tautan katalog membuka layanan dan jalur pemeriksaan jadwal yang tersedia pada proyek.",
+    "Batasi setiap tujuan maksimal dua tautan atau tombol; navigasi dan CTA hero menuju katalog tidak boleh menambah duplikasi yang tidak perlu.",
+    "Tombol dan tautan memiliki state hover, active, dan focus-visible menggunakan warna aksen sistem merek.",
+    "Animasi reveal berjalan sekali per kelompok visual, mulai sebelum kelompok masuk viewport, berhenti mengamati segera, dan tidak menyembunyikan konten bila skrip gagal.",
+    "prefers-reduced-motion menampilkan konten langsung dan mempertahankan fungsi semua kontrol."
+  ],
+  "acceptanceCriteria": [
+    "Semua sembilan bagian menggunakan referenceDirectionId dari keluarga layout yang cocok, dan layout mencatat peta komposisi desktop serta mobile.",
+    "Urutan bagian menjelaskan organisasi sebelum pilihan layanan, menempatkan katalog setelah pilihan, lalu berita dan kontak; dependensi hanya menunjuk ke bagian sebelumnya.",
+    "Gunakan Inter, wordmark UKM dan monogram U yang ada, palet terang serta aksen merah sistem merek.",
+    "Slot media tetap kosong dan siap diisi lewat dashboard admin; tidak ada kebutuhan gambar baru atau pengganti dekoratif dalam blueprint.",
+    "Nama layanan, tarif, jumlah unit, jadwal, berita, kontak dan kanal sosial berasal dari data proyek; jangan membuat klaim atau bukti sosial baru.",
+    "Tidak ada tujuan yang ditautkan lebih dari dua kali.",
+    "Hero memiliki animasi masuk yang terlihat; profil, struktur, katalog dan berita memiliki reveal saat scroll yang terpisah dan hanya berjalan sekali; reduced motion menampilkan semua konten langsung.",
+    "Pastikan Build menguji animasi hero, reveal saat scroll, reduced motion, gulir cepat berulang, reload di posisi tengah, resize, dan perubahan reduced motion saat animasi berjalan di browser. Catat bukti browser aktual."
+  ]
+}
